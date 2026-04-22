@@ -72,6 +72,7 @@ export default function Signup() {
             <Label htmlFor="fullName" className="text-[13px] font-medium text-muted-foreground">Full Name</Label>
             <Input
               id="fullName"
+              autoComplete="name"
               {...form.register("fullName")}
               className="h-12 rounded-xl bg-secondary/50 px-4 text-sm focus-visible:border-primary"
             />
@@ -85,6 +86,7 @@ export default function Signup() {
             <Input
               id="email"
               type="email"
+              autoComplete="email"
               {...form.register("email")}
               className="h-12 rounded-xl bg-secondary/50 px-4 text-sm focus-visible:border-primary"
             />
@@ -98,6 +100,7 @@ export default function Signup() {
             <Input
               id="password"
               type="password"
+              autoComplete="new-password"
               {...form.register("password")}
               className="h-12 rounded-xl bg-secondary/50 px-4 text-sm focus-visible:border-primary"
             />

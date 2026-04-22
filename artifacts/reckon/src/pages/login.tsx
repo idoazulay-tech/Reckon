@@ -61,6 +61,7 @@ export default function Login() {
             <Input
               id="email"
               type="email"
+              autoComplete="email"
               {...form.register("email")}
               className="h-12 rounded-xl bg-secondary/50 px-4 text-sm focus-visible:border-primary"
             />
@@ -74,6 +75,7 @@ export default function Login() {
             <Input
               id="password"
               type="password"
+              autoComplete="current-password"
               {...form.register("password")}
               className="h-12 rounded-xl bg-secondary/50 px-4 text-sm focus-visible:border-primary"
             />

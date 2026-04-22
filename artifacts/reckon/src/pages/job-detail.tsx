@@ -96,7 +96,7 @@ export default function JobDetail() {
     }
   };
 
-  const scoreColor = (job.match_score || 0) >= 80 ? "var(--green)" : (job.match_score || 0) >= 50 ? "var(--yellow)" : "var(--red)";
+  const scoreColor = (job.match_score || 0) >= 80 ? "#00d4aa" : (job.match_score || 0) >= 50 ? "#ffd166" : "#ff6b6b";
 
   const displayedSkills = isFree && job.missing_skills ? job.missing_skills.slice(0, 2) : job.missing_skills;
 

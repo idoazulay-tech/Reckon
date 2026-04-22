@@ -49,6 +49,20 @@ This creates: `profiles`, `jobs`, `usage_tracking` tables + RLS policies + stora
 - **Pages**: `/` landing, `/login`, `/signup`, `/dashboard` (Kanban), `/jobs/:id`, `/settings`, `/404`
 - **Env vars needed in frontend**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
 
+## QA Status (Task #6)
+
+All frontend flows tested and passing:
+- Landing: hero, 6 feature cards, 2 pricing cards, footer — all render correctly
+- Login/Signup: form validation works, error toasts display, autocomplete attributes added
+- Protected routes: /dashboard, /jobs/:id, /settings all redirect to /login when unauthenticated
+- 404 Not Found page renders for unknown paths
+- Mobile (375px): hero, forms, footer — no overflow; sidebar drawer pattern works
+- Desktop (1280px): full sidebar, 3-col features grid, side-by-side pricing cards
+
+**Bugs fixed in QA:**
+- `scoreColor` in job-detail.tsx was using raw HSL vars (`var(--green)`) → fixed to hex colors (#00d4aa, #ffd166, #ff6b6b)
+- Added `autocomplete` attributes to all auth inputs (email, current-password, new-password, name)
+
 ## Key Commands
 
 - `pnpm run typecheck` — full typecheck across all packages
