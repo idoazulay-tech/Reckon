@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useParams, Link } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { useGetJob, useUpdateJob, useRegenerateEmail, useGetProfile, useAnalyzeJob } from "@workspace/api-client-react";
+import { useGetJob, useUpdateJob, useRegenerateEmail, useGetProfile, useAnalyzeJob, getGetJobQueryKey, UpdateJobBodyStatus } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Spinner } from "@/components/ui/spinner";
-import { ArrowLeft, Copy, Sparkles, AlertCircle } from "lucide-react";
+import { ArrowLeft, Copy, Sparkles } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function JobDetail() {
@@ -14,7 +14,7 @@ export default function JobDetail() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const { data: jobResponse, isLoading } = useGetJob(id!, { query: { enabled: !!id } });
+  const { data: jobResponse, isLoading } = useGetJob(id!, { query: { enabled: !!id, queryKey: getGetJobQueryKey(id!) } });
   const { data: profileResponse } = useGetProfile();
   
   const updateJob = useUpdateJob();
@@ -46,17 +46,18 @@ export default function JobDetail() {
     );
   }
 
-  const handleStatusChange = async (status: string) => {
+  const handleStatusChange = async (status: UpdateJobBodyStatus) => {
     try {
       await updateJob.mutateAsync({
         id: job.id,
-        data: { status: status as any }
+        data: { status }
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/jobs/${job.id}`] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+      await queryClient.invalidateQueries({ queryKey: getGetJobQueryKey(job.id) });
       toast({ title: "Status updated" });
-    } catch (e: any) {
-      toast({ title: "Failed to update status", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      toast({ title: "Failed to update status", description: message, variant: "destructive" });
     }
   };
 
@@ -64,10 +65,11 @@ export default function JobDetail() {
     setIsRegenerating(true);
     try {
       await regenerateEmail.mutateAsync({ id: job.id });
-      queryClient.invalidateQueries({ queryKey: [`/api/jobs/${job.id}`] });
+      await queryClient.invalidateQueries({ queryKey: getGetJobQueryKey(job.id) });
       toast({ title: "Email regenerated" });
-    } catch (e: any) {
-      toast({ title: "Failed to regenerate", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      toast({ title: "Failed to regenerate", description: message, variant: "destructive" });
     } finally {
       setIsRegenerating(false);
     }
@@ -77,10 +79,11 @@ export default function JobDetail() {
     setIsAnalyzing(true);
     try {
       await analyzeJob.mutateAsync({ id: job.id });
-      queryClient.invalidateQueries({ queryKey: [`/api/jobs/${job.id}`] });
+      await queryClient.invalidateQueries({ queryKey: getGetJobQueryKey(job.id) });
       toast({ title: "Analysis complete" });
-    } catch (e: any) {
-      toast({ title: "Failed to analyze", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      toast({ title: "Failed to analyze", description: message, variant: "destructive" });
     } finally {
       setIsAnalyzing(false);
     }
@@ -88,14 +91,13 @@ export default function JobDetail() {
 
   const handleCopy = () => {
     if (job.generated_email) {
-      navigator.clipboard.writeText(job.generated_email);
+      void navigator.clipboard.writeText(job.generated_email);
       toast({ title: "Copied to clipboard" });
     }
   };
 
   const scoreColor = (job.match_score || 0) >= 80 ? "var(--green)" : (job.match_score || 0) >= 50 ? "var(--yellow)" : "var(--red)";
 
-  // Filter skills for free users
   const displayedSkills = isFree && job.missing_skills ? job.missing_skills.slice(0, 2) : job.missing_skills;
 
   return (
@@ -134,6 +136,15 @@ export default function JobDetail() {
             </Select>
           </div>
 
+          {job.job_description && (
+            <div className="mb-8">
+              <h2 className="mb-4 font-syne text-sm font-bold uppercase tracking-wide text-foreground">Job Description</h2>
+              <div className="rounded-xl border border-border bg-secondary/20 p-5 text-[13px] leading-relaxed text-muted-foreground max-h-[300px] overflow-y-auto whitespace-pre-wrap">
+                {job.job_description}
+              </div>
+            </div>
+          )}
+
           <div className="mb-8">
             <h2 className="mb-4 font-syne text-sm font-bold uppercase tracking-wide text-foreground">Missing Skills</h2>
             {displayedSkills && displayedSkills.length > 0 ? (
@@ -150,7 +161,7 @@ export default function JobDetail() {
                 )}
               </div>
             ) : job.match_score != null ? (
-              <div className="text-sm text-muted-foreground">No critical skills missing!</div>
+              <div className="text-sm text-muted-foreground">No critical skills missing.</div>
             ) : (
               <div className="text-sm text-muted-foreground">Not analyzed yet</div>
             )}
@@ -162,7 +173,7 @@ export default function JobDetail() {
               <ul className="flex flex-col gap-3">
                 {job.resume_suggestions.map((sug, i) => (
                   <li key={i} className="flex items-start gap-3 text-[13px] leading-relaxed text-muted-foreground">
-                    <span className="mt-0.5 text-primary">→</span>
+                    <span className="mt-0.5 text-primary">&#8594;</span>
                     {sug}
                   </li>
                 ))}
@@ -222,7 +233,7 @@ export default function JobDetail() {
           </div>
         </div>
 
-        {/* Sidebar Sidebar */}
+        {/* Sidebar */}
         <div>
           <div className="rounded-2xl border border-border bg-card p-8 text-center sticky top-24">
             <div className="mx-auto mb-4 flex h-[140px] w-[140px] items-center justify-center rounded-full relative" 
@@ -242,6 +253,23 @@ export default function JobDetail() {
               <Button onClick={handleAnalyze} disabled={isAnalyzing} className="mt-6 w-full bg-primary hover:bg-primary/90">
                 {isAnalyzing ? "Analyzing..." : "Analyze Job"}
               </Button>
+            )}
+
+            {job.match_score != null && (
+              <div className="mt-6 space-y-3 text-left">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">ATS Risk Score</span>
+                  <span className="font-semibold text-foreground">{job.match_score >= 70 ? "Low" : job.match_score >= 40 ? "Medium" : "High"}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Missing Skills</span>
+                  <span className="font-semibold text-[#ff6b6b]">{job.missing_skills?.length ?? 0}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Suggestions</span>
+                  <span className="font-semibold text-foreground">{job.resume_suggestions?.length ?? 0}</span>
+                </div>
+              </div>
             )}
           </div>
         </div>

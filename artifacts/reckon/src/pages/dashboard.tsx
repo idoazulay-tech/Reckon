@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { useGetJobs, useGetProfile } from "@workspace/api-client-react";
+import { useGetJobs, useGetProfile, Job } from "@workspace/api-client-react";
 import { Plus, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddJobModal } from "@/components/AddJobModal";
@@ -15,8 +15,9 @@ const STATUSES = [
   { id: "offer", label: "Offer" },
 ];
 
-function JobCard({ job }: { job: any }) {
-  const isOldApplication = job.status === "applied" && (new Date().getTime() - new Date(job.updated_at || job.created_at).getTime()) > 7 * 24 * 60 * 60 * 1000;
+function JobCard({ job }: { job: Job }) {
+  const updatedOrCreated = job.updated_at ?? job.created_at;
+  const isOldApplication = job.status === "applied" && updatedOrCreated != null && (new Date().getTime() - new Date(updatedOrCreated).getTime()) > 7 * 24 * 60 * 60 * 1000;
   
   return (
     <Link href={`/jobs/${job.id}`}>
@@ -39,7 +40,7 @@ function JobCard({ job }: { job: any }) {
             </div>
           )}
           <div className="text-[11px] text-muted-foreground">
-            {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
+            {job.created_at ? formatDistanceToNow(new Date(job.created_at), { addSuffix: true }) : ""}
           </div>
         </div>
         
@@ -72,7 +73,14 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <div className="mb-8 flex items-center justify-between">
-        <h1 className="font-syne text-3xl font-extrabold tracking-tight">Dashboard</h1>
+        <div>
+          <div className="text-xs font-medium text-muted-foreground mb-1">
+            {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+          </div>
+          <h1 className="font-syne text-3xl font-extrabold tracking-tight">
+            {profile?.full_name ? `Welcome, ${profile.full_name.split(" ")[0]}` : "Dashboard"}
+          </h1>
+        </div>
         <Button onClick={() => setModalOpen(true)} className="gap-2 bg-primary hover:bg-primary/90 rounded-xl px-5">
           <Plus className="h-4 w-4" />
           Add Job

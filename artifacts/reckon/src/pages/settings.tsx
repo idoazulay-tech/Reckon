@@ -45,9 +45,10 @@ export default function Settings() {
     try {
       await updateProfile.mutateAsync({ data: { full_name: data.fullName } });
       toast({ title: "Profile updated" });
-      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
-    } catch (e: any) {
-      toast({ title: "Failed to update profile", description: e.message, variant: "destructive" });
+      await queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      toast({ title: "Failed to update profile", description: message, variant: "destructive" });
     } finally {
       setIsUpdating(false);
     }
@@ -67,9 +68,10 @@ export default function Settings() {
       toast({ title: "Resume updated" });
       setFile(null);
       setResumeText("");
-      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
-    } catch (e: any) {
-      toast({ title: "Failed to upload resume", description: e.message, variant: "destructive" });
+      await queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      toast({ title: "Failed to upload resume", description: message, variant: "destructive" });
     } finally {
       setIsUploading(false);
     }
@@ -78,12 +80,13 @@ export default function Settings() {
   const handleCancelSub = async () => {
     if (!confirm("Are you sure you want to cancel your subscription?")) return;
     try {
-      await cancelSub.mutateAsync({});
+      await cancelSub.mutateAsync(undefined);
       toast({ title: "Subscription cancelled" });
-      queryClient.invalidateQueries({ queryKey: ["/api/billing"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
-    } catch (e: any) {
-      toast({ title: "Failed to cancel", description: e.message, variant: "destructive" });
+      await queryClient.invalidateQueries({ queryKey: ["/api/billing"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      toast({ title: "Failed to cancel", description: message, variant: "destructive" });
     }
   };
 
@@ -175,7 +178,7 @@ export default function Settings() {
           <h2 className="mb-6 font-syne text-lg font-bold">Subscription & Usage</h2>
           
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-[13px] font-semibold text-primary capitalize">
-            {profile?.subscription_type} Plan
+            {profile?.subscription_type ?? "free"} Plan
           </div>
 
           <div className="space-y-6">
@@ -183,12 +186,12 @@ export default function Settings() {
             <div>
               <div className="mb-1.5 flex justify-between text-xs text-muted-foreground">
                 <span>Jobs Analyzed</span>
-                <span>{billing?.jobs_count || 0} {limits?.free_jobs ? `/ ${limits.free_jobs}` : ''}</span>
+                <span>{billing?.jobs_count ?? 0} {limits?.free_jobs ? `/ ${limits.free_jobs}` : ''}</span>
               </div>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
                 <div 
-                  className="h-full rounded-full bg-primary"
-                  style={{ width: limits?.free_jobs ? `${Math.min(100, ((billing?.jobs_count || 0) / limits.free_jobs) * 100)}%` : '10%' }}
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: limits?.free_jobs ? `${Math.min(100, ((billing?.jobs_count ?? 0) / limits.free_jobs) * 100)}%` : '10%' }}
                 />
               </div>
             </div>
@@ -197,12 +200,12 @@ export default function Settings() {
             <div>
               <div className="mb-1.5 flex justify-between text-xs text-muted-foreground">
                 <span>Daily AI Analyses Used</span>
-                <span>{billing?.today_ai_calls || 0} {limits?.daily_ai_analyses ? `/ ${limits.daily_ai_analyses}` : ''}</span>
+                <span>{billing?.today_ai_calls ?? 0} {limits?.daily_ai_analyses ? `/ ${limits.daily_ai_analyses}` : ''}</span>
               </div>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
                 <div 
-                  className="h-full rounded-full bg-[#00d4aa]"
-                  style={{ width: limits?.daily_ai_analyses ? `${Math.min(100, ((billing?.today_ai_calls || 0) / limits.daily_ai_analyses) * 100)}%` : '10%' }}
+                  className="h-full rounded-full bg-[#00d4aa] transition-all"
+                  style={{ width: limits?.daily_ai_analyses ? `${Math.min(100, ((billing?.today_ai_calls ?? 0) / limits.daily_ai_analyses) * 100)}%` : '10%' }}
                 />
               </div>
             </div>
@@ -211,12 +214,20 @@ export default function Settings() {
               <div className="mt-8 rounded-xl border border-[#ff6b9d]/30 bg-[#ff6b9d]/5 p-5">
                 <h3 className="mb-2 font-syne font-bold text-foreground">Upgrade to Pro</h3>
                 <p className="mb-4 text-sm text-muted-foreground">Unlock unlimited job analysis, full missing skills list, and AI email generation.</p>
-                <Button className="w-full bg-[#ff6b9d] text-white hover:bg-[#ff6b9d]/90">
-                  Upgrade Now - $19/mo
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button className="w-full bg-[#ff6b9d] text-white hover:bg-[#ff6b9d]/90">
+                    Monthly — $19/mo
+                  </Button>
+                  <Button variant="outline" className="w-full border-border text-muted-foreground hover:text-foreground">
+                    Pay As You Go — $1 / 12 jobs
+                  </Button>
+                </div>
               </div>
             ) : (
-              <div className="mt-8 border-t border-border pt-6">
+              <div className="mt-8 border-t border-border pt-6 space-y-3">
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-semibold text-foreground capitalize">{profile?.subscription_type}</span> plan is active
+                </div>
                 <Button variant="destructive" onClick={handleCancelSub} className="bg-[#ff6b6b]/10 text-[#ff6b6b] border border-[#ff6b6b]/30 hover:bg-[#ff6b6b]/20">
                   Cancel Subscription
                 </Button>

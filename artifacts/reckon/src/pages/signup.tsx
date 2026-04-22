@@ -51,10 +51,10 @@ export default function Signup() {
       }
 
       setLocation("/dashboard");
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error signing up",
-        description: error.message || "An error occurred during sign up",
+        description: error instanceof Error ? error.message : "An error occurred during sign up",
         variant: "destructive",
       });
     } finally {

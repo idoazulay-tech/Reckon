@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useCreateJob, useExtractJobFromUrl, useExtractJobFromImage, useAnalyzeJob } from "@workspace/api-client-react";
+import { useCreateJob, useExtractJobFromUrl, useExtractJobFromImage, useAnalyzeJob, CreateJobBodyStatus } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface AddJobModalProps {
@@ -31,7 +31,7 @@ export function AddJobModal({ open, onOpenChange }: AddJobModalProps) {
     job_title: "",
     job_description: "",
     job_url: "",
-    status: "saved" as any,
+    status: "saved" as CreateJobBodyStatus,
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -53,14 +53,14 @@ export function AddJobModal({ open, onOpenChange }: AddJobModalProps) {
         }
       });
       
-      // Fire and forget analysis
-      analyzeJob.mutate({ id: job.job.id }).catch(console.error);
+      void analyzeJob.mutateAsync({ id: job.job.id }).catch(console.error);
       
       toast({ title: "Job added successfully" });
       onOpenChange(false);
       setLocation(`/jobs/${job.job.id}`);
-    } catch (err: any) {
-      toast({ title: "Error extracting job", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      toast({ title: "Error extracting job", description: message, variant: "destructive" });
     } finally {
       setIsProcessing(false);
     }
@@ -87,13 +87,14 @@ export function AddJobModal({ open, onOpenChange }: AddJobModalProps) {
         }
       });
       
-      analyzeJob.mutate({ id: job.job.id }).catch(console.error);
+      void analyzeJob.mutateAsync({ id: job.job.id }).catch(console.error);
       
       toast({ title: "Job added successfully" });
       onOpenChange(false);
       setLocation(`/jobs/${job.job.id}`);
-    } catch (err: any) {
-      toast({ title: "Error extracting job", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      toast({ title: "Error extracting job", description: message, variant: "destructive" });
     } finally {
       setIsProcessing(false);
     }
@@ -107,13 +108,14 @@ export function AddJobModal({ open, onOpenChange }: AddJobModalProps) {
     try {
       const job = await createJob.mutateAsync({ data: manualForm });
       
-      analyzeJob.mutate({ id: job.job.id }).catch(console.error);
+      void analyzeJob.mutateAsync({ id: job.job.id }).catch(console.error);
       
       toast({ title: "Job added successfully" });
       onOpenChange(false);
       setLocation(`/jobs/${job.job.id}`);
-    } catch (err: any) {
-      toast({ title: "Error adding job", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      toast({ title: "Error adding job", description: message, variant: "destructive" });
     } finally {
       setIsProcessing(false);
     }
@@ -167,7 +169,7 @@ export function AddJobModal({ open, onOpenChange }: AddJobModalProps) {
                 />
                 <Label htmlFor="job-image" className="cursor-pointer flex flex-col items-center gap-2">
                   <div className="text-4xl text-muted-foreground">
-                    <svg xmlns="http://www.w3.org/-svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                   </div>
                   <span className="text-sm text-muted-foreground">
                     {file ? file.name : <span>Click to upload a screenshot</span>}
@@ -219,7 +221,7 @@ export function AddJobModal({ open, onOpenChange }: AddJobModalProps) {
                 <Label htmlFor="status">Status</Label>
                 <Select
                   value={manualForm.status}
-                  onValueChange={(val: any) => setManualForm({ ...manualForm, status: val })}
+                  onValueChange={(val: CreateJobBodyStatus) => setManualForm({ ...manualForm, status: val })}
                 >
                   <SelectTrigger className="bg-secondary/50">
                     <SelectValue placeholder="Select status" />

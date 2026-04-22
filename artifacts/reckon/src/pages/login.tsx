@@ -37,10 +37,10 @@ export default function Login() {
       if (error) throw error;
       
       setLocation("/dashboard");
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error signing in",
-        description: error.message || "Please check your credentials and try again",
+        description: error instanceof Error ? error.message : "Please check your credentials and try again",
         variant: "destructive",
       });
     } finally {
