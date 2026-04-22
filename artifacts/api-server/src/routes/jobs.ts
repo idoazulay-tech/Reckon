@@ -68,7 +68,7 @@ async function incrementAnalysisCount(userId: string): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
   const { data: existing } = await supabase
     .from("usage_tracking")
-    .select("id, ai_calls")
+    .select("id, ai_calls, jobs_analyzed")
     .eq("user_id", userId)
     .eq("period_start", today)
     .single();
@@ -76,7 +76,10 @@ async function incrementAnalysisCount(userId: string): Promise<void> {
   if (existing) {
     await supabase
       .from("usage_tracking")
-      .update({ ai_calls: existing.ai_calls + 1 })
+      .update({
+        ai_calls: existing.ai_calls + 1,
+        jobs_analyzed: existing.jobs_analyzed + 1,
+      })
       .eq("id", existing.id);
   } else {
     await supabase.from("usage_tracking").insert({
@@ -238,8 +241,36 @@ router.post("/jobs/extract-url", requireAuth, async (req, res) => {
     const response = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; Reckon/1.0)" },
       signal: AbortSignal.timeout(10000),
-      redirect: "follow",
+      redirect: "manual",
     });
+
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location || !isSafeUrl(location)) {
+        res.status(422).json({ error: "Redirect to disallowed destination", hint: "Try uploading a screenshot instead" });
+        return;
+      }
+      const redirected = await fetch(location, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; Reckon/1.0)" },
+        signal: AbortSignal.timeout(10000),
+        redirect: "error",
+      });
+      if (!redirected.ok) {
+        res.status(422).json({ error: "Could not fetch job page", hint: "Try uploading a screenshot instead" });
+        return;
+      }
+      const html2 = await redirected.text();
+      const textContent2 = html2
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 8000);
+      const extracted2 = await extractJobFromText(textContent2, url);
+      res.json({ extracted: extracted2 });
+      return;
+    }
 
     if (!response.ok) {
       res.status(422).json({ error: "Could not fetch job page", hint: "Try uploading a screenshot instead" });

@@ -8,6 +8,21 @@
 import * as zod from "zod";
 
 /**
+ * @summary Get authenticated user info
+ */
+export const GetMeResponse = zod.object({
+  user: zod
+    .object({
+      id: zod.string(),
+      full_name: zod.string().nullish(),
+      subscription_type: zod.enum(["free", "payg", "monthly"]),
+      jobs_count: zod.number(),
+      created_at: zod.coerce.date().optional(),
+    })
+    .optional(),
+});
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({

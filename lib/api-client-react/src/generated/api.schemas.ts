@@ -9,6 +9,23 @@ export interface HealthStatus {
   status: string;
 }
 
+export type UserSummarySubscriptionType =
+  (typeof UserSummarySubscriptionType)[keyof typeof UserSummarySubscriptionType];
+
+export const UserSummarySubscriptionType = {
+  free: "free",
+  payg: "payg",
+  monthly: "monthly",
+} as const;
+
+export interface UserSummary {
+  id: string;
+  full_name?: string | null;
+  subscription_type: UserSummarySubscriptionType;
+  jobs_count: number;
+  created_at?: string;
+}
+
 export interface ErrorResponse {
   error: string;
   message?: string;
@@ -212,6 +229,10 @@ export type UnauthorizedResponse = ErrorResponse;
  * Resource not found
  */
 export type NotFoundResponse = ErrorResponse;
+
+export type GetMe200 = {
+  user?: UserSummary;
+};
 
 export type UploadResumeBody = {
   resume?: Blob;

@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
   - name: profile
     description: User profile operations
   - name: jobs
@@ -18,6 +20,26 @@ tags:
     description: Billing and subscription operations
 
 paths:
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get authenticated user info
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/UserSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /healthz:
     get:
       operationId: healthCheck
@@ -412,6 +434,27 @@ components:
           type: string
       required:
         - status
+
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        full_name:
+          type: string
+          nullable: true
+        subscription_type:
+          type: string
+          enum: [free, payg, monthly]
+        jobs_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - subscription_type
+        - jobs_count
 
     ErrorResponse:
       type: object
