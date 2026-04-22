@@ -78,6 +78,26 @@ create index if not exists jobs_user_id_idx on public.jobs(user_id);
 create index if not exists jobs_status_idx on public.jobs(status);
 create index if not exists jobs_created_at_idx on public.jobs(created_at desc);
 
+-- Auto-update profiles.jobs_count on job insert/delete
+create or replace function public.update_jobs_count()
+returns trigger language plpgsql security definer
+set search_path = public
+as $$
+begin
+  if (TG_OP = 'INSERT') then
+    update public.profiles set jobs_count = jobs_count + 1 where id = NEW.user_id;
+  elsif (TG_OP = 'DELETE') then
+    update public.profiles set jobs_count = greatest(0, jobs_count - 1) where id = OLD.user_id;
+  end if;
+  return null;
+end;
+$$;
+
+drop trigger if exists on_job_changed on public.jobs;
+create trigger on_job_changed
+  after insert or delete on public.jobs
+  for each row execute procedure public.update_jobs_count();
+
 -- RLS for jobs
 alter table public.jobs enable row level security;
 
