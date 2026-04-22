@@ -39,6 +39,16 @@ Reckon is an AI-powered job search intelligence app. This is a pnpm monorepo wit
 Run `artifacts/api-server/supabase-schema.sql` in the Supabase SQL Editor (reckon-prod project, Frankfurt).
 This creates: `profiles`, `jobs`, `usage_tracking` tables + RLS policies + storage bucket.
 
+## Frontend
+
+- **Framework**: React + Vite (port 18787, preview path `/`)
+- **Auth**: Supabase Auth via `@supabase/supabase-js` → `src/lib/supabase.ts` + `src/contexts/AuthContext.tsx`
+- **Routing**: Wouter with protected routes for `/dashboard`, `/jobs/:id`, `/settings`
+- **State**: TanStack Query + generated hooks from `@workspace/api-client-react`
+- **Design**: Dark theme, Syne + DM Sans fonts, accent #7c6fff — matching approved mockup
+- **Pages**: `/` landing, `/login`, `/signup`, `/dashboard` (Kanban), `/jobs/:id`, `/settings`, `/404`
+- **Env vars needed in frontend**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+
 ## Key Commands
 
 - `pnpm run typecheck` — full typecheck across all packages
