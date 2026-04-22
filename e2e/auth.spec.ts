@@ -1,4 +1,51 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "@playwright/test";
+import { mockApiJobs, mockApiProfile } from "./helpers/mockAuth";
+
+const SUPABASE_URL = "https://kypejbzdjfwdyzxfqgx.supabase.co";
+const FAKE_USER = {
+  id: "test-user-id",
+  email: "test@reckon.app",
+  user_metadata: { full_name: "Test User" },
+  app_metadata: {},
+  aud: "authenticated",
+  role: "authenticated",
+  created_at: new Date().toISOString(),
+};
+const FAKE_SESSION = {
+  access_token: "fake-access-token-valid",
+  token_type: "bearer",
+  expires_in: 86400,
+  expires_at: Math.floor(Date.now() / 1000) + 86400,
+  refresh_token: "fake-refresh-token",
+  user: FAKE_USER,
+};
+
+async function mockSuccessfulAuth(page: Page) {
+  await page.route(`${SUPABASE_URL}/**`, async (route) => {
+    const url = route.request().url();
+    if (url.includes("/auth/v1/token")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(FAKE_SESSION),
+      });
+    } else if (url.includes("/auth/v1/user")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(FAKE_USER),
+      });
+    } else {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ session: FAKE_SESSION, user: FAKE_USER }),
+      });
+    }
+  });
+  await mockApiJobs(page);
+  await mockApiProfile(page);
+}
 
 test.describe("Login Page", () => {
   test.beforeEach(async ({ page }) => {
@@ -45,6 +92,15 @@ test.describe("Login Page", () => {
     await page.getByRole("link", { name: "Sign up" }).click();
     await expect(page).toHaveURL(/\/signup/);
   });
+
+  test("successful login redirects to dashboard", async ({ page }) => {
+    await mockSuccessfulAuth(page);
+    await page.getByLabel("Email Address").fill("test@reckon.app");
+    await page.getByLabel("Password").fill("password123");
+    await page.getByRole("button", { name: "Sign In" }).click();
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 8000 });
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 8000 });
+  });
 });
 
 test.describe("Signup Page", () => {
@@ -76,5 +132,37 @@ test.describe("Signup Page", () => {
   test("Sign in link navigates to login", async ({ page }) => {
     await page.getByRole("link", { name: "Sign in" }).click();
     await expect(page).toHaveURL(/\/login/);
+  });
+
+  test("successful signup redirects to dashboard", async ({ page }) => {
+    await page.route(`${SUPABASE_URL}/**`, async (route) => {
+      const url = route.request().url();
+      if (url.includes("/auth/v1/signup")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(FAKE_SESSION),
+        });
+      } else if (url.includes("/auth/v1/user")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(FAKE_USER),
+        });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ session: FAKE_SESSION, user: FAKE_USER }),
+        });
+      }
+    });
+    await mockApiJobs(page);
+    await mockApiProfile(page);
+    await page.getByLabel("Full Name").fill("Test User");
+    await page.getByLabel("Email Address").fill("newuser@reckon.app");
+    await page.getByLabel("Password").fill("securepassword123");
+    await page.getByRole("button", { name: "Sign Up" }).click();
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 8000 });
   });
 });

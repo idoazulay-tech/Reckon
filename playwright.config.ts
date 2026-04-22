@@ -1,6 +1,19 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const NIXOS_CHROME = "/nix/store/d7y5039fgn5432kgkn0cv09hda4a7nxz-playwright-chromium-cjk-1.55.0-1187/chrome-linux/chrome-wrapper";
+const NIXOS_CHROME_PATH = "/nix/store/d7y5039fgn5432kgkn0cv09hda4a7nxz-playwright-chromium-cjk-1.55.0-1187/chrome-linux/chrome-wrapper";
+
+function resolveChromePath(): string | undefined {
+  if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
+    return process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+  }
+  try {
+    const fs = require("fs");
+    if (fs.existsSync(NIXOS_CHROME_PATH)) return NIXOS_CHROME_PATH;
+  } catch {}
+  return undefined;
+}
+
+const executablePath = resolveChromePath();
 
 export default defineConfig({
   testDir: "./e2e",
@@ -16,7 +29,7 @@ export default defineConfig({
     screenshot: "only-on-failure",
     video: "off",
     launchOptions: {
-      executablePath: NIXOS_CHROME,
+      ...(executablePath ? { executablePath } : {}),
       args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
     },
   },

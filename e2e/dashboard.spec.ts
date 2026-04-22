@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { mockAuth, mockApiJobs, mockApiProfile } from "./helpers/mockAuth";
+import { mockAuth, mockApiJobs, mockApiProfile, mockApiSingleJob } from "./helpers/mockAuth";
 
 const MOCK_PROFILE = {
   profile: { id: "1", full_name: "Test", subscription_type: "free", jobs_count: 0 },
@@ -82,6 +82,19 @@ test.describe("Dashboard — Kanban Board", () => {
     await expect(page.getByText("Add New Job")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByText("Add New Job")).not.toBeVisible({ timeout: 3000 });
+  });
+
+  test("Add Job modal saves manual job and navigates to job detail", async ({ page }) => {
+    await mockApiSingleJob(page, "job-1");
+    await page.route("/api/jobs/job-1/analyze", (route) => {
+      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
+    });
+    await page.getByRole("button", { name: "Add Job" }).click();
+    await page.getByRole("tab", { name: "Manual" }).click();
+    await page.getByLabel("Company").fill("New Corp");
+    await page.getByLabel("Job Title").fill("Staff Engineer");
+    await page.locator('[role="dialog"]').getByRole("button", { name: "Add Job" }).click();
+    await expect(page).toHaveURL(/\/jobs\/job-1/, { timeout: 8000 });
   });
 });
 
