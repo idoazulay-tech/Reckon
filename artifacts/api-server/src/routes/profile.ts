@@ -6,6 +6,8 @@ import { supabase } from "../lib/supabase";
 const router: IRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
+const RESUME_SIGNED_URL_TTL = 3600;
+
 router.get("/profile", requireAuth, async (req, res) => {
   const { data, error } = await supabase
     .from("profiles")
@@ -19,7 +21,15 @@ router.get("/profile", requireAuth, async (req, res) => {
     return;
   }
 
-  res.json({ profile: data });
+  let resumeSignedUrl: string | null = null;
+  if (data?.resume_url) {
+    const { data: signed } = await supabase.storage
+      .from("resumes")
+      .createSignedUrl(data.resume_url, RESUME_SIGNED_URL_TTL);
+    resumeSignedUrl = signed?.signedUrl ?? null;
+  }
+
+  res.json({ profile: { ...data, resume_signed_url: resumeSignedUrl } });
 });
 
 router.put("/profile", requireAuth, async (req, res) => {
@@ -46,13 +56,13 @@ router.put("/profile/resume", requireAuth, upload.single("resume"), async (req, 
   const pastedText = (req.body as { resume_text?: string }).resume_text;
 
   let resumeText = pastedText ?? "";
-  let resumeUrl: string | null = null;
+  let resumeStoragePath: string | null = null;
 
   if (file) {
-    const fileName = `${req.user!.id}/resume_${Date.now()}.pdf`;
+    const storagePath = `${req.user!.id}/resume_${Date.now()}.pdf`;
     const { error: uploadError } = await supabase.storage
       .from("resumes")
-      .upload(fileName, file.buffer, {
+      .upload(storagePath, file.buffer, {
         contentType: "application/pdf",
         upsert: true,
       });
@@ -63,8 +73,7 @@ router.put("/profile/resume", requireAuth, upload.single("resume"), async (req, 
       return;
     }
 
-    const { data: urlData } = supabase.storage.from("resumes").getPublicUrl(fileName);
-    resumeUrl = urlData.publicUrl;
+    resumeStoragePath = storagePath;
 
     try {
       const pdfParse = await import("pdf-parse");
@@ -77,7 +86,7 @@ router.put("/profile/resume", requireAuth, upload.single("resume"), async (req, 
 
   const updatePayload: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (resumeText) updatePayload["resume_text"] = resumeText;
-  if (resumeUrl) updatePayload["resume_url"] = resumeUrl;
+  if (resumeStoragePath) updatePayload["resume_url"] = resumeStoragePath;
 
   const { data, error } = await supabase
     .from("profiles")

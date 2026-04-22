@@ -134,23 +134,30 @@ create policy "Service role full access to usage_tracking"
   using (auth.role() = 'service_role');
 
 
--- 4. Storage bucket for resumes
+-- 4. Storage bucket for resumes (PRIVATE — no public access)
 insert into storage.buckets (id, name, public)
-values ('resumes', 'resumes', true)
-on conflict (id) do nothing;
+values ('resumes', 'resumes', false)
+on conflict (id) do update set public = false;
 
--- Storage RLS
+-- Storage RLS — users can only access their own folder
 drop policy if exists "Users can upload own resume" on storage.objects;
 create policy "Users can upload own resume"
   on storage.objects for insert
   with check (bucket_id = 'resumes' and auth.uid()::text = (storage.foldername(name))[1]);
 
 drop policy if exists "Resumes are publicly readable" on storage.objects;
-create policy "Resumes are publicly readable"
+
+drop policy if exists "Users can read own resume" on storage.objects;
+create policy "Users can read own resume"
   on storage.objects for select
-  using (bucket_id = 'resumes');
+  using (bucket_id = 'resumes' and auth.uid()::text = (storage.foldername(name))[1]);
 
 drop policy if exists "Users can update own resume" on storage.objects;
 create policy "Users can update own resume"
   on storage.objects for update
+  using (bucket_id = 'resumes' and auth.uid()::text = (storage.foldername(name))[1]);
+
+drop policy if exists "Users can delete own resume" on storage.objects;
+create policy "Users can delete own resume"
+  on storage.objects for delete
   using (bucket_id = 'resumes' and auth.uid()::text = (storage.foldername(name))[1]);
