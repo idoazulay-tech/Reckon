@@ -157,68 +157,49 @@ export default function Landing() {
             <p className="mt-3 text-muted-foreground">Start free. Pay only when you need more.</p>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {/* Free */}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 max-w-[800px] mx-auto w-full">
+            {/* PAYG */}
             <div className="rounded-2xl border border-border bg-card p-8">
-              <div className="mb-1 font-syne text-lg font-bold">Free</div>
-              <div className="mb-6 flex items-baseline gap-1">
-                <span className="font-syne text-4xl font-extrabold">$0</span>
-                <span className="text-sm text-muted-foreground">/forever</span>
-              </div>
-              <ul className="mb-8 space-y-3 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2"><span className="text-primary">&#10003;</span> 3 job analyses</li>
-                <li className="flex items-center gap-2"><span className="text-primary">&#10003;</span> Match score + 2 missing skills</li>
-                <li className="flex items-center gap-2"><span className="text-primary">&#10003;</span> Kanban board tracker</li>
-                <li className="flex items-center gap-2 opacity-40"><span>&#10003;</span> Full AI email generation</li>
-                <li className="flex items-center gap-2 opacity-40"><span>&#10003;</span> Complete skill gap analysis</li>
-              </ul>
-              <Link href="/signup">
-                <Button variant="outline" className="w-full border-border bg-transparent hover:border-primary hover:text-primary">
-                  Get Started Free
-                </Button>
-              </Link>
-            </div>
-
-            {/* PAYG — highlighted */}
-            <div className="relative rounded-2xl border-2 border-primary bg-card p-8 shadow-[0_0_40px_rgba(124,111,255,0.15)]">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-[11px] font-semibold text-white">
-                Most Flexible
-              </div>
               <div className="mb-1 font-syne text-lg font-bold">Pay As You Go</div>
-              <div className="mb-6 flex items-baseline gap-1">
-                <span className="font-syne text-4xl font-extrabold">$1</span>
+              <div className="mb-2 flex items-baseline gap-1">
+                <span className="font-syne text-5xl font-extrabold">$1</span>
                 <span className="text-sm text-muted-foreground">/ 12 analyses</span>
               </div>
+              <p className="mb-6 text-xs text-muted-foreground">First 3 analyses always free. Top up when you need more.</p>
               <ul className="mb-8 space-y-3 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2"><span className="text-primary">&#10003;</span> 12 job analyses per $1</li>
+                <li className="flex items-center gap-2"><span className="text-primary">&#10003;</span> 12 analyses per $1 top-up</li>
                 <li className="flex items-center gap-2"><span className="text-primary">&#10003;</span> Full AI email generation</li>
                 <li className="flex items-center gap-2"><span className="text-primary">&#10003;</span> Complete missing skills list</li>
                 <li className="flex items-center gap-2"><span className="text-primary">&#10003;</span> ATS risk assessment</li>
-                <li className="flex items-center gap-2"><span className="text-primary">&#10003;</span> No commitment, pay per use</li>
+                <li className="flex items-center gap-2"><span className="text-primary">&#10003;</span> No subscription, no lock-in</li>
               </ul>
               <Link href="/signup">
                 <Button className="w-full bg-primary hover:bg-primary/90">
-                  Start with PAYG
+                  Start Free
                 </Button>
               </Link>
             </div>
 
-            {/* Monthly */}
-            <div className="rounded-2xl border border-border bg-card p-8">
+            {/* Monthly — highlighted */}
+            <div className="relative rounded-2xl border-2 border-primary bg-card p-8 shadow-[0_0_40px_rgba(124,111,255,0.15)]">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-[11px] font-semibold text-white">
+                Best Value
+              </div>
               <div className="mb-1 font-syne text-lg font-bold">Monthly</div>
-              <div className="mb-6 flex items-baseline gap-1">
-                <span className="font-syne text-4xl font-extrabold">$19</span>
+              <div className="mb-2 flex items-baseline gap-1">
+                <span className="font-syne text-5xl font-extrabold">$19</span>
                 <span className="text-sm text-muted-foreground">/month</span>
               </div>
+              <p className="mb-6 text-xs text-muted-foreground">7-day free trial. Cancel any time.</p>
               <ul className="mb-8 space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-center gap-2"><span className="text-[#00d4aa]">&#10003;</span> Unlimited job analyses</li>
                 <li className="flex items-center gap-2"><span className="text-[#00d4aa]">&#10003;</span> Full AI email generation</li>
                 <li className="flex items-center gap-2"><span className="text-[#00d4aa]">&#10003;</span> Complete skill gap analysis</li>
                 <li className="flex items-center gap-2"><span className="text-[#00d4aa]">&#10003;</span> ATS risk assessment</li>
-                <li className="flex items-center gap-2"><span className="text-[#00d4aa]">&#10003;</span> 7-day free trial</li>
+                <li className="flex items-center gap-2"><span className="text-[#00d4aa]">&#10003;</span> Priority AI processing</li>
               </ul>
               <Link href="/signup">
-                <Button variant="outline" className="w-full border-[#00d4aa]/50 text-[#00d4aa] bg-transparent hover:border-[#00d4aa] hover:bg-[#00d4aa]/10">
+                <Button className="w-full bg-gradient-to-r from-primary to-[#ff6b9d] hover:opacity-90 text-white">
                   Start Free Trial
                 </Button>
               </Link>
