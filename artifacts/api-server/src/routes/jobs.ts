@@ -8,6 +8,41 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 
 const FREE_JOB_LIMIT = 3;
 const MAX_EMAIL_REGENERATIONS = 3;
+const DAILY_AI_LIMIT = 10;
+
+function isSafeUrl(rawUrl: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return false;
+  }
+
+  if (!["http:", "https:"].includes(parsed.protocol)) return false;
+
+  const hostname = parsed.hostname.toLowerCase();
+
+  const privatePatterns = [
+    /^localhost$/,
+    /^127\./,
+    /^10\./,
+    /^172\.(1[6-9]|2\d|3[01])\./,
+    /^192\.168\./,
+    /^169\.254\./,
+    /^::1$/,
+    /^fc00:/,
+    /^fd/,
+    /^0\.0\.0\.0$/,
+    /^metadata\.google\.internal$/,
+    /^169\.254\.169\.254$/,
+  ];
+
+  for (const pattern of privatePatterns) {
+    if (pattern.test(hostname)) return false;
+  }
+
+  return true;
+}
 
 async function getUserPlan(userId: string): Promise<string> {
   const { data } = await supabase
@@ -161,6 +196,18 @@ router.put("/jobs/:id", requireAuth, async (req, res) => {
 });
 
 router.delete("/jobs/:id", requireAuth, async (req, res) => {
+  const { data: existing } = await supabase
+    .from("jobs")
+    .select("id")
+    .eq("id", req.params["id"])
+    .eq("user_id", req.user!.id)
+    .single();
+
+  if (!existing) {
+    res.status(404).json({ error: "Job not found" });
+    return;
+  }
+
   const { error } = await supabase
     .from("jobs")
     .delete()
@@ -182,10 +229,16 @@ router.post("/jobs/extract-url", requireAuth, async (req, res) => {
     return;
   }
 
+  if (!isSafeUrl(url)) {
+    res.status(400).json({ error: "Invalid or disallowed URL" });
+    return;
+  }
+
   try {
     const response = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; Reckon/1.0)" },
       signal: AbortSignal.timeout(10000),
+      redirect: "follow",
     });
 
     if (!response.ok) {
@@ -225,8 +278,8 @@ router.post("/jobs/:id/analyze", requireAuth, async (req, res) => {
   const plan = await getUserPlan(req.user!.id);
   const analysisCount = await getTodayAnalysisCount(req.user!.id);
 
-  if (plan === "free" && analysisCount >= 10) {
-    res.status(429).json({ error: "Daily AI analysis limit reached. Upgrade or try again tomorrow." });
+  if (analysisCount >= DAILY_AI_LIMIT) {
+    res.status(429).json({ error: "Daily AI analysis limit reached. Try again tomorrow." });
     return;
   }
 
