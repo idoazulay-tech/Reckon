@@ -12,12 +12,14 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
 
 const profileSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
 });
 
 export default function Settings() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -124,6 +126,16 @@ export default function Settings() {
                 id="name"
                 {...form.register("fullName")}
                 className="bg-secondary/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={user?.email ?? ""}
+                readOnly
+                className="bg-secondary/30 text-muted-foreground cursor-default"
               />
             </div>
             <Button type="submit" disabled={isUpdating} className="bg-primary hover:bg-primary/90">
