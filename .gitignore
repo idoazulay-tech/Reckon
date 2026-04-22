@@ -47,3 +47,8 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Playwright test artifacts (transient)
+e2e/test-results/
+e2e/.last-run.json
+playwright-report/

@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const NIXOS_CHROME_PATH = "/nix/store/d7y5039fgn5432kgkn0cv09hda4a7nxz-playwright-chromium-cjk-1.55.0-1187/chrome-linux/chrome-wrapper";
+const NIXOS_CHROME_FALLBACK = "/nix/store/d7y5039fgn5432kgkn0cv09hda4a7nxz-playwright-chromium-cjk-1.55.0-1187/chrome-linux/chrome-wrapper";
 
 function resolveChromePath(): string | undefined {
   if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
@@ -8,7 +8,10 @@ function resolveChromePath(): string | undefined {
   }
   try {
     const fs = require("fs");
-    if (fs.existsSync(NIXOS_CHROME_PATH)) return NIXOS_CHROME_PATH;
+    if (fs.existsSync(NIXOS_CHROME_FALLBACK)) return NIXOS_CHROME_FALLBACK;
+    console.warn(
+      "[playwright] No browser binary found. Set PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH or run: npx playwright install chromium"
+    );
   } catch {}
   return undefined;
 }
