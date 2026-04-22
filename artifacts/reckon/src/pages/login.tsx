@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 const loginSchema = z.object({
@@ -19,6 +19,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { login, loginWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const form = useForm<LoginForm>({
@@ -29,13 +30,7 @@ export default function Login() {
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      });
-
-      if (error) throw error;
-      
+      await login(data.email, data.password);
       setLocation("/dashboard");
     } catch (error: unknown) {
       toast({
@@ -49,10 +44,7 @@ export default function Login() {
   };
 
   const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin + "/dashboard" },
-    });
+    await loginWithGoogle();
   };
 
   return (

@@ -56,11 +56,32 @@ function JobCard({ job }: { job: Job }) {
 
 export default function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
-  const { data: jobsResponse } = useGetJobs();
-  const { data: profileResponse } = useGetProfile();
+  const { data: jobsResponse, isLoading: jobsLoading, isError: jobsError } = useGetJobs();
+  const { data: profileResponse, isLoading: profileLoading } = useGetProfile();
   
   const jobs = jobsResponse?.jobs || [];
   const profile = profileResponse?.profile;
+
+  if (jobsLoading || profileLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (jobsError) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
+          <p className="text-muted-foreground">Failed to load your jobs. Please try again.</p>
+          <Button variant="outline" onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </AppLayout>
+    );
+  }
   
   const totalApplied = jobs.filter((j) => ["applied", "interview", "offer", "rejected"].includes(j.status)).length;
   const totalInterviews = jobs.filter((j) => ["interview", "offer"].includes(j.status)).length;

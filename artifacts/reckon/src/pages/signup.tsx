@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateProfile } from "@workspace/api-client-react";
 
@@ -21,6 +21,7 @@ type SignupForm = z.infer<typeof signupSchema>;
 export default function Signup() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { signup, loginWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
   const updateProfile = useUpdateProfile();
 
@@ -32,22 +33,14 @@ export default function Signup() {
   const onSubmit = async (data: SignupForm) => {
     setLoading(true);
     try {
-      const { data: authData, error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-      });
+      await signup(data.email, data.password);
 
-      if (error) throw error;
-
-      if (authData.user) {
-        // Update profile with name if sign up was successful
-        try {
-          await updateProfile.mutateAsync({
-            data: { full_name: data.fullName }
-          });
-        } catch (e) {
-          console.error("Failed to set full name", e);
-        }
+      try {
+        await updateProfile.mutateAsync({
+          data: { full_name: data.fullName }
+        });
+      } catch (e) {
+        console.error("Failed to set full name", e);
       }
 
       setLocation("/dashboard");
@@ -63,10 +56,7 @@ export default function Signup() {
   };
 
   const handleGoogleSignup = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin + "/dashboard" },
-    });
+    await loginWithGoogle();
   };
 
   return (
