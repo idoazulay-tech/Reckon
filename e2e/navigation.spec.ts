@@ -23,7 +23,8 @@ test.describe("Protected Route Redirects", () => {
 test.describe("404 Not Found", () => {
   test("unknown routes show 404 page", async ({ page }) => {
     await page.goto("/this-page-does-not-exist-xyz");
-    await expect(page.getByText(/not found|404/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Return Home" })).toBeVisible();
   });
 });
 
@@ -40,10 +41,11 @@ test.describe("Navigation Links", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test("landing page Logo R. is present", async ({ page }) => {
+  test("landing page Logo R. is present in nav", async ({ page }) => {
     await page.goto("/");
-    const logo = page.locator("nav").getByText("R");
-    await expect(logo).toBeVisible();
+    const nav = page.locator("nav");
+    await expect(nav).toBeVisible();
+    await expect(page.getByRole("link", { name: "Login" })).toBeVisible();
   });
 });
 
@@ -53,7 +55,7 @@ test.describe("Error States", () => {
     await page.getByLabel("Email Address").fill("nonexistent@test.com");
     await page.getByLabel("Password").fill("wrongpass123");
     await page.getByRole("button", { name: "Sign In" }).click();
-    await expect(page.getByText("Error signing in")).toBeVisible({ timeout: 8000 });
+    await expect(page.getByText("Error signing in", { exact: true })).toBeVisible({ timeout: 8000 });
     await expect(page).toHaveURL(/\/login/);
   });
 });

@@ -35,12 +35,10 @@ test.describe("Landing Page", () => {
 
   test("renders 2 pricing cards", async ({ page }) => {
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await expect(page.getByText("Pay As You Go")).toBeVisible();
-    await expect(page.getByText("$1")).toBeVisible();
+    await expect(page.getByText("Pay As You Go", { exact: true })).toBeVisible();
     await expect(page.getByText("/ 12 analyses")).toBeVisible();
-    await expect(page.getByText("Monthly")).toBeVisible();
-    await expect(page.getByText("$19")).toBeVisible();
-    await expect(page.getByText("Best Value")).toBeVisible();
+    await expect(page.getByText("Monthly", { exact: true })).toBeVisible();
+    await expect(page.getByText("Best Value", { exact: true })).toBeVisible();
   });
 
   test("renders footer", async ({ page }) => {

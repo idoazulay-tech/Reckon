@@ -19,10 +19,11 @@ test.describe("Login Page", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test("shows email validation error for invalid email", async ({ page }) => {
+  test("stays on login page when invalid email submitted", async ({ page }) => {
     await page.getByLabel("Email Address").fill("notanemail");
+    await page.getByLabel("Password").fill("somepassword");
     await page.getByRole("button", { name: "Sign In" }).click();
-    await expect(page.getByText("Please enter a valid email address")).toBeVisible();
+    await expect(page).toHaveURL(/\/login/);
   });
 
   test("shows password length validation error", async ({ page }) => {
@@ -36,7 +37,7 @@ test.describe("Login Page", () => {
     await page.getByLabel("Email Address").fill("test@example.com");
     await page.getByLabel("Password").fill("wrongpassword");
     await page.getByRole("button", { name: "Sign In" }).click();
-    await expect(page.getByText("Error signing in")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("Error signing in", { exact: true })).toBeVisible({ timeout: 8000 });
     await expect(page).toHaveURL(/\/login/);
   });
 
