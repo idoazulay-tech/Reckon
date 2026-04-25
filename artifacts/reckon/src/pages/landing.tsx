@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogoMark } from "@/components/LogoMark";
-import { Check } from "lucide-react";
+import { Aurora } from "@/components/Aurora";
+import { Check, ChevronDown } from "lucide-react";
 
 const FEATURES = [
   {
@@ -54,13 +56,36 @@ const FEATURES = [
   },
 ];
 
+const FAQS = [
+  {
+    q: "How does Reckon analyze a job posting?",
+    a: "Paste any job URL or screenshot — Reckon uses Claude AI to extract every requirement, compare it against your resume, and produce a detailed match score in under 30 seconds.",
+  },
+  {
+    q: "What counts as an 'analysis' on the free plan?",
+    a: "Each time you run AI analysis on a job (match score, missing skills, email generation) it counts as one analysis. The free plan includes 3 analyses. Pay-as-you-go gives you 12 for $1.",
+  },
+  {
+    q: "Can I import my resume as a PDF?",
+    a: "Yes. Upload a PDF or DOCX from Settings, or paste the text directly. Reckon re-uses your resume for every subsequent analysis automatically.",
+  },
+  {
+    q: "Is my data private?",
+    a: "Absolutely. Your resume and job data are stored securely in your personal account. We never share or sell your data. You can delete everything from your account at any time.",
+  },
+  {
+    q: "Can I cancel my subscription at any time?",
+    a: "Yes — cancel any time from Settings. Your data is retained for 60 days after cancellation so you can export it before it's removed.",
+  },
+];
+
 export default function Landing() {
   const { user } = useAuth();
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
     <>
-      <div className="aurora" aria-hidden="true" />
-      <div className="grain" aria-hidden="true" />
+      <Aurora />
 
       <div className="landing">
         {/* Nav */}
@@ -106,6 +131,40 @@ export default function Landing() {
             <a href="#features" className="btn btn-ghost btn-lg">
               See How It Works
             </a>
+          </div>
+
+          {/* Hero visual cards */}
+          <div className="vis-cards">
+            <div className="vis-card">
+              <div className="vis-card-head">
+                <div className="vis-label">Match Score</div>
+                <div className="vis-score good">87%</div>
+              </div>
+              <div className="vis-progress">
+                <div className="vis-progress-fill good" style={{ width: "87%" }} />
+              </div>
+              <div className="vis-company">Stripe · Senior Engineer</div>
+            </div>
+            <div className="vis-card vis-card-center">
+              <div className="vis-card-head">
+                <div className="vis-label">Missing Skills</div>
+                <span className="pill pill-bad" style={{ height: 20, fontSize: 10 }}>2 critical</span>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+                <span className="pill pill-bad">Kubernetes</span>
+                <span className="pill pill-warn">Go</span>
+                <span className="pill" style={{ opacity: 0.5 }}>+3 more</span>
+              </div>
+            </div>
+            <div className="vis-card">
+              <div className="vis-card-head">
+                <div className="vis-label">Email Draft</div>
+                <span className="pill pill-good" style={{ height: 20, fontSize: 10 }}>AI written</span>
+              </div>
+              <div className="vis-email-preview">
+                Hi Sarah, I came across the Senior Engineer role at Stripe and was immediately drawn to…
+              </div>
+            </div>
           </div>
         </div>
 
@@ -198,6 +257,32 @@ export default function Landing() {
                 Start Free Trial
               </Link>
             </div>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section className="faq-section">
+          <div className="section-head" style={{ textAlign: "center" }}>
+            <span className="kicker">FAQ</span>
+            <div className="h-display" style={{ fontSize: 40 }}>
+              Common questions
+            </div>
+          </div>
+          <div className="faq-list">
+            {FAQS.map((faq, i) => (
+              <div key={i} className={`faq-item${openFaq === i ? " open" : ""}`}>
+                <button
+                  className="faq-q"
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                >
+                  {faq.q}
+                  <ChevronDown className="faq-chevron" size={18} />
+                </button>
+                <div className="faq-a">
+                  <p>{faq.a}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 

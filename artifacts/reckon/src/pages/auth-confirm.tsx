@@ -3,6 +3,7 @@ import { useLocation, Link } from "wouter";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { LogoMark } from "@/components/LogoMark";
+import { Aurora } from "@/components/Aurora";
 import { CheckCircle, XCircle } from "lucide-react";
 
 const VALID_EMAIL_OTP_TYPES: EmailOtpType[] = [
@@ -64,8 +65,7 @@ export default function AuthConfirm() {
 
   return (
     <>
-      <div className="aurora" aria-hidden="true" />
-      <div className="grain" aria-hidden="true" />
+      <Aurora />
 
       <div className="page-center">
         <div className="status-card">

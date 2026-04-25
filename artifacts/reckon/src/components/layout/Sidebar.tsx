@@ -33,9 +33,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
           <LogoMark />
           <button
             onClick={onClose}
-            className="menu-btn"
-            style={{ display: "none" }}
-            id="sidebar-close-btn"
+            className="menu-btn sidebar-close-btn"
           >
             <X size={18} />
           </button>

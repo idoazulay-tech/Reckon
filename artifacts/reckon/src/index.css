@@ -751,3 +751,60 @@ input, textarea, select { font-family: inherit; font-size: 14px; }
 .field-hint { font-size: 11px; color: var(--text-4); line-height: 1.4; }
 
 .pill.pill-neutral { color: var(--text-3); background: var(--surface-2); border-color: var(--line); }
+
+/* ============================================================
+   Hero visual cards
+   ============================================================ */
+.vis-cards {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 14px;
+  max-width: 900px; margin: 48px auto 0; text-align: left;
+}
+.vis-card {
+  background: linear-gradient(180deg, var(--surface), var(--surface-2));
+  border: 1px solid var(--line-strong); border-radius: 16px; padding: 20px;
+  backdrop-filter: blur(10px);
+}
+.vis-card-center { transform: translateY(-8px); box-shadow: 0 20px 60px -16px rgba(168,85,247,0.4); border-color: var(--violet); }
+.vis-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.vis-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); }
+.vis-score { font-family: var(--serif); font-size: 28px; letter-spacing: -0.03em; }
+.vis-score.good { color: var(--good); }
+.vis-score.warn { color: var(--warn); }
+.vis-progress { height: 4px; background: var(--surface-2); border-radius: 100px; overflow: hidden; margin-bottom: 10px; }
+.vis-progress-fill { height: 100%; border-radius: 100px; background: var(--good); transition: width .6s; }
+.vis-company { font-size: 11px; color: var(--text-4); font-family: var(--mono); }
+.vis-email-preview { font-size: 12px; color: var(--text-3); line-height: 1.55; font-style: italic; }
+
+@media (max-width: 880px) { .vis-cards { grid-template-columns: 1fr; } .vis-card-center { transform: none; } }
+
+/* ============================================================
+   FAQ accordion
+   ============================================================ */
+.faq-section { max-width: 760px; margin: 0 auto; padding: 80px 48px; }
+.faq-list { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; margin-top: 36px; }
+.faq-item { border-bottom: 1px solid var(--line); }
+.faq-item:last-child { border-bottom: none; }
+.faq-q {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 20px 24px; font-size: 15px; font-weight: 500; color: var(--text);
+  background: var(--surface); text-align: left; cursor: pointer;
+  transition: background .15s;
+}
+.faq-q:hover { background: var(--surface-2); }
+.faq-chevron { color: var(--text-3); flex-shrink: 0; transition: transform .25s cubic-bezier(.4,0,.2,1); }
+.faq-item.open .faq-chevron { transform: rotate(180deg); }
+.faq-a {
+  max-height: 0; overflow: hidden;
+  transition: max-height .3s cubic-bezier(.4,0,.2,1), padding .3s;
+  background: var(--bg-2);
+}
+.faq-item.open .faq-a { max-height: 200px; }
+.faq-a p { padding: 16px 24px 20px; font-size: 14px; color: var(--text-2); line-height: 1.65; }
+
+@media (max-width: 880px) { .faq-section { padding: 48px 20px; } .faq-q { padding: 16px 18px; } .faq-a p { padding: 12px 18px 16px; } }
+
+/* ============================================================
+   Sidebar close button (visible on mobile only)
+   ============================================================ */
+.sidebar-close-btn { display: none; }
+@media (max-width: 880px) { .sidebar-close-btn { display: grid; } }

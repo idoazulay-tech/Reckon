@@ -1,6 +1,7 @@
 import { ReactNode, useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { LogoMark } from "@/components/LogoMark";
+import { Aurora } from "@/components/Aurora";
 import { Menu } from "lucide-react";
 
 interface AppLayoutProps {
@@ -12,8 +13,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <>
-      <div className="aurora" aria-hidden="true" />
-      <div className="grain" aria-hidden="true" />
+      <Aurora />
 
       <div className="app">
         <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />

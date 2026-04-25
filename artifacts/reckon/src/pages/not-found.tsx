@@ -1,11 +1,11 @@
 import { Link } from "wouter";
 import { LogoMark } from "@/components/LogoMark";
+import { Aurora } from "@/components/Aurora";
 
 export default function NotFound() {
   return (
     <>
-      <div className="aurora" aria-hidden="true" />
-      <div className="grain" aria-hidden="true" />
+      <Aurora />
       <div className="page-center">
         <div className="status-card">
           <div style={{ marginBottom: 32, display: "flex", justifyContent: "center" }}>

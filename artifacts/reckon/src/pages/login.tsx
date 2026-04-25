@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { LogoMark } from "@/components/LogoMark";
+import { Aurora } from "@/components/Aurora";
 import { Lock, Sparkles } from "lucide-react";
 
 const loginSchema = z.object({
@@ -56,8 +57,7 @@ export default function Login() {
 
   return (
     <>
-      <div className="aurora" aria-hidden="true" />
-      <div className="grain" aria-hidden="true" />
+      <Aurora />
 
       <div className="auth-page">
         <div className="auth-nav">

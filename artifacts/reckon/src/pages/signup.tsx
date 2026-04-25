@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateProfile } from "@workspace/api-client-react";
 import { LogoMark } from "@/components/LogoMark";
+import { Aurora } from "@/components/Aurora";
 import { Lock, Sparkles, Mail } from "lucide-react";
 
 const signupSchema = z.object({
@@ -72,8 +73,7 @@ export default function Signup() {
   if (confirmedEmail) {
     return (
       <>
-        <div className="aurora" aria-hidden="true" />
-        <div className="grain" aria-hidden="true" />
+        <Aurora />
         <div className="page-center">
           <div className="status-card">
             <div style={{ marginBottom: 24 }}>
@@ -103,8 +103,7 @@ export default function Signup() {
 
   return (
     <>
-      <div className="aurora" aria-hidden="true" />
-      <div className="grain" aria-hidden="true" />
+      <Aurora />
 
       <div className="auth-page">
         <div className="auth-nav">
