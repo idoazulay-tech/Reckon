@@ -8,7 +8,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
 }
@@ -53,9 +53,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
-  const signup = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
+  const signup = async (email: string, password: string): Promise<{ needsConfirmation: boolean }> => {
+    const confirmUrl = window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "") + "/auth/confirm";
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: confirmUrl },
+    });
     if (error) throw error;
+    const needsConfirmation = !data.session;
+    if (!needsConfirmation && import.meta.env.DEV) {
+      console.warn(
+        "[Auth] signUp returned an active session without email confirmation. " +
+        "Enable 'Confirm email' in Supabase Dashboard > Authentication > Providers > Email " +
+        "to require email verification before account activation."
+      );
+    }
+    return { needsConfirmation };
   };
 
   const logout = async () => {

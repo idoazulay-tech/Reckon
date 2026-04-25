@@ -39,6 +39,17 @@ Reckon is an AI-powered job search intelligence app. This is a pnpm monorepo wit
 Run `artifacts/api-server/supabase-schema.sql` in the Supabase SQL Editor (reckon-prod project, Frankfurt).
 This creates: `profiles`, `jobs`, `usage_tracking` tables + RLS policies + storage bucket.
 
+## Supabase Dashboard Configuration Required
+
+The following must be manually enabled in the Supabase dashboard to enforce email verification on signup:
+
+**Authentication > Providers > Email > Confirm email: ON**
+
+This prevents fake/unverified accounts. The frontend is fully set up to handle the confirmation flow:
+- Signup shows "check your email" screen when confirmation is pending
+- Confirmation emails link to `/auth/confirm` (handled by `src/pages/auth-confirm.tsx`)
+- If this setting is OFF, the app still works but skips email verification (a warning is logged in dev mode)
+
 ## Frontend
 
 - **Framework**: React + Vite (port 18787, preview path `/`)
@@ -46,7 +57,7 @@ This creates: `profiles`, `jobs`, `usage_tracking` tables + RLS policies + stora
 - **Routing**: Wouter with protected routes for `/dashboard`, `/jobs/:id`, `/settings`
 - **State**: TanStack Query + generated hooks from `@workspace/api-client-react`
 - **Design**: Dark theme, Syne + DM Sans fonts, accent #7c6fff — matching approved mockup
-- **Pages**: `/` landing, `/login`, `/signup`, `/dashboard` (Kanban), `/jobs/:id`, `/settings`, `/404`
+- **Pages**: `/` landing, `/login`, `/signup`, `/auth/confirm` (email confirmation callback), `/dashboard` (Kanban), `/jobs/:id`, `/settings`, `/404`
 - **Env vars needed in frontend**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
 
 ## QA Status (Task #6)

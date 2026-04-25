@@ -23,6 +23,7 @@ export default function Signup() {
   const { toast } = useToast();
   const { signup, loginWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [confirmedEmail, setConfirmedEmail] = useState<string | null>(null);
   const updateProfile = useUpdateProfile();
 
   const form = useForm<SignupForm>({
@@ -33,7 +34,12 @@ export default function Signup() {
   const onSubmit = async (data: SignupForm) => {
     setLoading(true);
     try {
-      await signup(data.email, data.password);
+      const { needsConfirmation } = await signup(data.email, data.password);
+
+      if (needsConfirmation) {
+        setConfirmedEmail(data.email);
+        return;
+      }
 
       try {
         await updateProfile.mutateAsync({
@@ -58,6 +64,36 @@ export default function Signup() {
   const handleGoogleSignup = async () => {
     await loginWithGoogle();
   };
+
+  if (confirmedEmail) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="w-full max-w-[440px] rounded-3xl border border-border bg-card p-12 shadow-sm text-center">
+          <div className="mb-2 font-syne text-3xl font-extrabold text-foreground text-left">
+            R<span className="text-primary">.</span>
+          </div>
+          <div className="mt-8 mb-4 flex items-center justify-center">
+            <div className="rounded-full bg-primary/10 p-4">
+              <svg className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+              </svg>
+            </div>
+          </div>
+          <h2 className="text-xl font-semibold text-foreground mb-2">Check your email</h2>
+          <p className="text-sm text-muted-foreground mb-1">
+            We sent a confirmation link to
+          </p>
+          <p className="text-sm font-medium text-foreground mb-6">{confirmedEmail}</p>
+          <p className="text-xs text-muted-foreground mb-8">
+            Click the link in the email to verify your account and get started. Check your spam folder if you don't see it.
+          </p>
+          <Link href="/login" className="text-sm text-primary hover:underline">
+            Return to sign in
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">

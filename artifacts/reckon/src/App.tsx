@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
+import AuthConfirm from "@/pages/auth-confirm";
 import Dashboard from "@/pages/dashboard";
 import JobDetail from "@/pages/job-detail";
 import Settings from "@/pages/settings";
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
+      <Route path="/auth/confirm" component={AuthConfirm} />
       
       <Route path="/dashboard">
         <ProtectedRoute>
