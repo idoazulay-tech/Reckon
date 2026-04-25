@@ -58,7 +58,7 @@ export function AddJobModal({ open, onOpenChange }: AddJobModalProps) {
       });
       void analyzeJob.mutateAsync({ id: job.job.id }).catch(console.error);
       toast({ title: "Job added!" });
-      onOpenChange(false);
+      handleClose();
       setLocation(`/jobs/${job.job.id}`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unknown error";
@@ -83,7 +83,7 @@ export function AddJobModal({ open, onOpenChange }: AddJobModalProps) {
       });
       void analyzeJob.mutateAsync({ id: job.job.id }).catch(console.error);
       toast({ title: "Job added!" });
-      onOpenChange(false);
+      handleClose();
       setLocation(`/jobs/${job.job.id}`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unknown error";
@@ -101,7 +101,7 @@ export function AddJobModal({ open, onOpenChange }: AddJobModalProps) {
       const job = await createJob.mutateAsync({ data: manualForm });
       void analyzeJob.mutateAsync({ id: job.job.id }).catch(console.error);
       toast({ title: "Job added!" });
-      onOpenChange(false);
+      handleClose();
       setLocation(`/jobs/${job.job.id}`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unknown error";

@@ -114,7 +114,7 @@ export default function JobDetail() {
 
   return (
     <AppLayout>
-      <button className="back-btn" onClick={() => history.back()}>
+      <button className="back-btn" onClick={() => window.history.length > 1 ? window.history.back() : setLocation("/dashboard")}>
         <ArrowLeft size={14} />
         Back to Dashboard
       </button>
