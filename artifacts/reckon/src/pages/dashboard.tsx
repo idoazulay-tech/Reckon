@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useGetJobs, useGetProfile, useUpdateJob, Job } from "@workspace/api-client-react";
@@ -16,9 +16,14 @@ import {
   useSensor,
   useSensors,
   useDroppable,
-  useDraggable,
   closestCenter,
 } from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
 const STATUSES = [
@@ -77,13 +82,14 @@ function JobCardContent({ job, isDragging = false }: { job: Job; isDragging?: bo
 }
 
 function DraggableJobCard({ job }: { job: Job }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: job.id,
     data: { job },
   });
 
   const style = {
-    transform: CSS.Translate.toString(transform),
+    transform: CSS.Transform.toString(transform),
+    transition,
     opacity: isDragging ? 0.35 : 1,
     touchAction: "none",
   };
@@ -107,6 +113,7 @@ function DroppableColumn({
   isOver: boolean;
 }) {
   const { setNodeRef } = useDroppable({ id: status.id });
+  const jobIds = jobs.map((j) => j.id);
 
   return (
     <div className={`kanban-col${status.accent ? " accent" : ""}${isOver ? " drag-over" : ""}`}>
@@ -119,9 +126,11 @@ function DroppableColumn({
       </div>
 
       <div ref={setNodeRef} className="kanban-col-list">
-        {jobs.map((job) => (
-          <DraggableJobCard key={job.id} job={job} />
-        ))}
+        <SortableContext items={jobIds} strategy={verticalListSortingStrategy}>
+          {jobs.map((job) => (
+            <DraggableJobCard key={job.id} job={job} />
+          ))}
+        </SortableContext>
 
         {jobs.length === 0 && (
           <div className="kanban-empty">
@@ -137,6 +146,8 @@ export default function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const [activeJob, setActiveJob] = useState<Job | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
+  const [localOrder, setLocalOrder] = useState<Record<string, string[]>>({});
+  const localOrderSnapshot = useRef<Record<string, string[]> | null>(null);
 
   const {
     data: jobsResponse,
@@ -150,37 +161,146 @@ export default function Dashboard() {
   const jobs = jobsResponse?.jobs || [];
   const profile = profileResponse?.profile;
 
+  useEffect(() => {
+    if (!jobs.length && Object.keys(localOrder).length > 0) return;
+    setLocalOrder((prev) => {
+      const jobMap = new Map(jobs.map((j) => [j.id, j]));
+      const next: Record<string, string[]> = {};
+      STATUSES.forEach((s) => {
+        const existing = (prev[s.id] || []).filter((id) => {
+          const job = jobMap.get(id);
+          return job && job.status === s.id;
+        });
+        const existingSet = new Set(existing);
+        const newIds = jobs
+          .filter((j) => j.status === s.id && !existingSet.has(j.id))
+          .map((j) => j.id);
+        next[s.id] = [...existing, ...newIds];
+      });
+      return next;
+    });
+  }, [jobs]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
   );
 
+  const columnStatusSet = new Set<string>(STATUSES.map((s) => s.id));
+
+  function isColumnId(id: string): id is StatusId {
+    return columnStatusSet.has(id);
+  }
+
+  function findContainer(id: string): string | undefined {
+    if (isColumnId(id)) return id;
+    return Object.entries(localOrder).find(([, ids]) => ids.includes(id))?.[0];
+  }
+
   function handleDragStart(event: DragStartEvent) {
     const job = event.active.data.current?.job as Job;
     setActiveJob(job ?? null);
+    localOrderSnapshot.current = localOrder;
   }
+
   function handleDragOver(event: DragOverEvent) {
-    const overId = event.over?.id as string | null;
-    setOverColumnId(overId ?? null);
+    const { active, over } = event;
+    if (!over) {
+      setOverColumnId(null);
+      return;
+    }
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    const activeContainer = findContainer(activeId);
+    const overContainer = findContainer(overId);
+
+    if (!activeContainer || !overContainer) {
+      setOverColumnId(overContainer ?? null);
+      return;
+    }
+
+    setOverColumnId(overContainer);
+
+    if (activeContainer === overContainer) return;
+
+    setLocalOrder((prev) => {
+      const sourceIds = [...(prev[activeContainer] || [])];
+      const destIds = [...(prev[overContainer] || [])];
+
+      const activeIndex = sourceIds.indexOf(activeId);
+      if (activeIndex === -1) return prev;
+      sourceIds.splice(activeIndex, 1);
+
+      const isOverAColumn = isColumnId(overId);
+      if (isOverAColumn) {
+        destIds.push(activeId);
+      } else {
+        const overIndex = destIds.indexOf(overId);
+        destIds.splice(overIndex >= 0 ? overIndex : destIds.length, 0, activeId);
+      }
+
+      return { ...prev, [activeContainer]: sourceIds, [overContainer]: destIds };
+    });
   }
+
   function handleDragCancel() {
     setActiveJob(null);
     setOverColumnId(null);
+    if (localOrderSnapshot.current) {
+      setLocalOrder(localOrderSnapshot.current);
+      localOrderSnapshot.current = null;
+    }
   }
+
   function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
     setActiveJob(null);
     setOverColumnId(null);
-    const { active, over } = event;
+
     if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
     const job = active.data.current?.job as Job;
-    const newStatus = over.id as StatusId;
-    if (!job || job.status === newStatus) return;
-    const validStatuses: StatusId[] = STATUSES.map((s) => s.id);
-    if (!validStatuses.includes(newStatus)) return;
-    updateJob.mutate(
-      { id: job.id, data: { status: newStatus } },
-      { onSuccess: () => refetch() },
-    );
+
+    const activeContainer = findContainer(activeId);
+    const overContainer = findContainer(overId);
+
+    if (!activeContainer || !overContainer || !job) return;
+
+    if (activeContainer === overContainer) {
+      const isOverAColumn = isColumnId(overId);
+      if (!isOverAColumn && activeId !== overId) {
+        setLocalOrder((prev) => {
+          const ids = [...(prev[activeContainer] || [])];
+          const oldIdx = ids.indexOf(activeId);
+          const newIdx = ids.indexOf(overId);
+          if (oldIdx === -1 || newIdx === -1) return prev;
+          return { ...prev, [activeContainer]: arrayMove(ids, oldIdx, newIdx) };
+        });
+      }
+      localOrderSnapshot.current = null;
+    } else {
+      const newStatus = overContainer as StatusId;
+      const validStatuses: StatusId[] = STATUSES.map((s) => s.id);
+      if (validStatuses.includes(newStatus) && job.status !== newStatus) {
+        const snapshot = localOrderSnapshot.current;
+        localOrderSnapshot.current = null;
+        updateJob.mutate(
+          { id: job.id, data: { status: newStatus } },
+          {
+            onSuccess: () => refetch(),
+            onError: () => {
+              if (snapshot) setLocalOrder(snapshot);
+            },
+          },
+        );
+      } else {
+        localOrderSnapshot.current = null;
+      }
+    }
   }
 
   if (jobsLoading || profileLoading) {
@@ -215,6 +335,8 @@ export default function Dashboard() {
   const h = new Date().getHours();
   const greet = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
   const firstName = profile?.full_name?.split(" ")[0] ?? "";
+
+  const jobMap = new Map(jobs.map((j) => [j.id, j]));
 
   return (
     <AppLayout>
@@ -280,7 +402,13 @@ export default function Dashboard() {
       >
         <div className="kanban">
           {STATUSES.map((status) => {
-            const colJobs = jobs.filter((j) => j.status === status.id);
+            const orderedIds = localOrder[status.id] || [];
+            const colJobs = orderedIds
+              .map((id) => jobMap.get(id))
+              .filter((j): j is Job =>
+                j !== undefined &&
+                (j.status === status.id || j.id === activeJob?.id),
+              );
             return (
               <DroppableColumn
                 key={status.id}
