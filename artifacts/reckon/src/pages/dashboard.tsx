@@ -3,7 +3,6 @@ import { Link } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useGetJobs, useGetProfile, useUpdateJob, Job } from "@workspace/api-client-react";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { AddJobModal } from "@/components/AddJobModal";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -23,14 +22,20 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 const STATUSES = [
-  { id: "saved", label: "Saved" },
-  { id: "applied", label: "Applied" },
-  { id: "interview", label: "Interview" },
-  { id: "rejected", label: "Rejected" },
-  { id: "offer", label: "Offer" },
+  { id: "saved", label: "Saved", hint: "Bookmarked" },
+  { id: "applied", label: "Applied", hint: "Submitted", accent: true },
+  { id: "interview", label: "Interview", hint: "Active" },
+  { id: "rejected", label: "Rejected", hint: "Closed" },
+  { id: "offer", label: "Offer", hint: "Congrats!" },
 ] as const;
 
 type StatusId = (typeof STATUSES)[number]["id"];
+
+function scoreClass(score: number) {
+  if (score >= 80) return "good";
+  if (score >= 50) return "warn";
+  return "bad";
+}
 
 function JobCardContent({ job, isDragging = false }: { job: Job; isDragging?: boolean }) {
   const updatedOrCreated = job.updated_at ?? job.created_at;
@@ -40,46 +45,33 @@ function JobCardContent({ job, isDragging = false }: { job: Job; isDragging?: bo
     new Date().getTime() - new Date(updatedOrCreated).getTime() > 7 * 24 * 60 * 60 * 1000;
 
   return (
-    <div
-      className={`rounded-xl border bg-card p-4 transition-all mb-3 ${
-        isDragging
-          ? "border-primary shadow-lg opacity-95 rotate-1"
-          : "border-border hover:-translate-y-0.5 hover:border-primary cursor-grab active:cursor-grabbing"
-      }`}
-    >
-      <div className="mb-1 text-xs text-muted-foreground">{job.company_name}</div>
-      <div className="mb-3 font-syne text-sm font-bold leading-tight">{job.job_title}</div>
-
-      <div className="flex items-center justify-between">
+    <div className={`job-card${isDragging ? " dragging" : ""}`}>
+      <div className="job-card-top">
+        <div className="job-logo">
+          {job.company_name?.charAt(0) ?? "?"}
+        </div>
         {job.match_score != null ? (
-          <div
-            className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-              job.match_score >= 80
-                ? "bg-[#00d4aa]/10 text-[#00d4aa]"
-                : job.match_score >= 50
-                  ? "bg-[#ffd166]/10 text-[#ffd166]"
-                  : "bg-[#ff6b6b]/10 text-[#ff6b6b]"
-            }`}
-          >
-            {job.match_score}% Match
-          </div>
+          <span className={`score-badge ${scoreClass(job.match_score)}`}>
+            {job.match_score}%
+          </span>
         ) : (
-          <div className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-            Unscored
-          </div>
+          <span className="score-badge neutral">—</span>
         )}
-        <div className="text-[11px] text-muted-foreground">
+      </div>
+
+      <div className="job-company">{job.company_name}</div>
+      <div className="job-title">{job.job_title}</div>
+
+      <div className="job-card-foot">
+        <span className="job-when">
           {job.created_at
             ? formatDistanceToNow(new Date(job.created_at), { addSuffix: true })
             : ""}
-        </div>
+        </span>
+        {isOldApplication && (
+          <span className="follow-badge">↑ Follow up</span>
+        )}
       </div>
-
-      {isOldApplication && (
-        <div className="mt-2 inline-block rounded-full bg-[#ff6b9d]/10 px-2 py-0.5 text-[10px] font-semibold text-[#ff6b9d]">
-          Follow Up
-        </div>
-      )}
     </div>
   );
 }
@@ -110,40 +102,30 @@ function DroppableColumn({
   jobs,
   isOver,
 }: {
-  status: { id: string; label: string };
+  status: { id: string; label: string; hint?: string; accent?: boolean };
   jobs: Job[];
   isOver: boolean;
 }) {
   const { setNodeRef } = useDroppable({ id: status.id });
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="mb-2 flex items-center gap-2 px-1">
-        <h3 className="text-[13px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {status.label}
-        </h3>
-        <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
-          {jobs.length}
-        </span>
+    <div className={`kanban-col${status.accent ? " accent" : ""}${isOver ? " drag-over" : ""}`}>
+      <div className="kanban-col-head">
+        <div>
+          <div className="kanban-col-title">{status.label}</div>
+          {status.hint && <div className="kanban-col-hint">{status.hint}</div>}
+        </div>
+        <span className="kanban-count">{jobs.length}</span>
       </div>
 
-      <div
-        ref={setNodeRef}
-        className={`flex flex-col min-h-[200px] rounded-xl p-1 transition-colors ${
-          isOver ? "bg-primary/5 ring-2 ring-primary/30" : ""
-        }`}
-      >
+      <div ref={setNodeRef} className="kanban-col-list">
         {jobs.map((job) => (
           <DraggableJobCard key={job.id} job={job} />
         ))}
 
         {jobs.length === 0 && (
-          <div
-            className={`rounded-xl border border-dashed p-4 text-center text-xs text-muted-foreground h-24 flex items-center justify-center transition-colors ${
-              isOver ? "border-primary/50 bg-primary/5" : "border-border/50 bg-secondary/20"
-            }`}
-          >
-            {isOver ? "Drop here" : "No jobs"}
+          <div className="kanban-empty">
+            {isOver ? "Drop here" : "No jobs yet"}
           </div>
         )}
       </div>
@@ -177,32 +159,24 @@ export default function Dashboard() {
     const job = event.active.data.current?.job as Job;
     setActiveJob(job ?? null);
   }
-
   function handleDragOver(event: DragOverEvent) {
     const overId = event.over?.id as string | null;
     setOverColumnId(overId ?? null);
   }
-
   function handleDragCancel() {
     setActiveJob(null);
     setOverColumnId(null);
   }
-
   function handleDragEnd(event: DragEndEvent) {
     setActiveJob(null);
     setOverColumnId(null);
-
     const { active, over } = event;
     if (!over) return;
-
     const job = active.data.current?.job as Job;
     const newStatus = over.id as StatusId;
-
     if (!job || job.status === newStatus) return;
-
     const validStatuses: StatusId[] = STATUSES.map((s) => s.id);
     if (!validStatuses.includes(newStatus)) return;
-
     updateJob.mutate(
       { id: job.id, data: { status: newStatus } },
       { onSuccess: () => refetch() },
@@ -212,8 +186,8 @@ export default function Dashboard() {
   if (jobsLoading || profileLoading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
+          <div className="spinner" style={{ width: 32, height: 32, borderWidth: 3 }} />
         </div>
       </AppLayout>
     );
@@ -222,86 +196,78 @@ export default function Dashboard() {
   if (jobsError) {
     return (
       <AppLayout>
-        <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
-          <p className="text-muted-foreground">Failed to load your jobs. Please try again.</p>
-          <Button variant="outline" onClick={() => window.location.reload()}>
-            Retry
-          </Button>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 16, textAlign: "center" }}>
+          <p style={{ color: "var(--text-3)" }}>Failed to load your jobs. Please try again.</p>
+          <button className="btn btn-ghost" onClick={() => window.location.reload()}>Retry</button>
         </div>
       </AppLayout>
     );
   }
 
-  const totalApplied = jobs.filter((j) =>
-    ["applied", "interview", "offer", "rejected"].includes(j.status),
-  ).length;
+  const totalApplied = jobs.filter((j) => ["applied", "interview", "offer", "rejected"].includes(j.status)).length;
   const totalInterviews = jobs.filter((j) => ["interview", "offer"].includes(j.status)).length;
   const scoredJobs = jobs.filter((j) => j.match_score != null);
-  const avgMatch =
-    scoredJobs.length > 0
-      ? Math.round(
-          scoredJobs.reduce((acc, j) => acc + (j.match_score || 0), 0) / scoredJobs.length,
-        )
-      : 0;
+  const avgMatch = scoredJobs.length > 0
+    ? Math.round(scoredJobs.reduce((acc, j) => acc + (j.match_score || 0), 0) / scoredJobs.length)
+    : 0;
   const totalOffers = jobs.filter((j) => j.status === "offer").length;
+
+  const h = new Date().getHours();
+  const greet = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  const firstName = profile?.full_name?.split(" ")[0] ?? "";
 
   return (
     <AppLayout>
-      <div className="mb-8 flex items-center justify-between">
+      <div className="main-header">
         <div>
-          <div className="text-xs font-medium text-muted-foreground mb-1">
-            {new Date().toLocaleDateString("en-US", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </div>
-          <h1 className="font-syne text-3xl font-extrabold tracking-tight">
-            {profile?.full_name ? `Welcome, ${profile.full_name.split(" ")[0]}` : "Dashboard"}
+          <div className="crumbs">Dashboard</div>
+          <h1>
+            {firstName ? `${greet}, ${firstName}.` : "Dashboard."}
           </h1>
         </div>
-        <Button
+        <button
+          className="btn btn-primary"
           onClick={() => setModalOpen(true)}
-          className="gap-2 bg-primary hover:bg-primary/90 rounded-xl px-5"
         >
-          <Plus className="h-4 w-4" />
+          <Plus size={16} />
           Add Job
-        </Button>
+        </button>
       </div>
 
       {profile?.subscription_type === "free" && (profile.jobs_count || 0) >= 3 && (
-        <div className="mb-6 rounded-xl border border-[#ffd166]/30 bg-[#ffd166]/5 p-4 text-sm text-[#ffd166]">
-          <strong>Free plan limit reached.</strong> You have analyzed {profile.jobs_count || 0}{" "}
-          jobs. Please upgrade your plan in Settings to analyze more jobs.
+        <div className="alert-warn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>
+            <strong>Free plan limit reached.</strong> You've analyzed {profile.jobs_count || 0} jobs.{" "}
+            <Link href="/settings" style={{ color: "var(--violet-bright)" }}>Upgrade in Settings</Link> to analyze more.
+          </span>
         </div>
       )}
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Total Applied
-          </div>
-          <div className="font-syne text-3xl font-extrabold">{totalApplied}</div>
+      {/* Stats */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-label">Total Applied</div>
+          <div className="stat-value">{totalApplied}</div>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Interviews
-          </div>
-          <div className="font-syne text-3xl font-extrabold text-[#00d4aa]">{totalInterviews}</div>
+        <div className="stat-card">
+          <div className="stat-label">Interviews</div>
+          <div className="stat-value good">{totalInterviews}</div>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Avg Match
-          </div>
-          <div className="font-syne text-3xl font-extrabold text-primary">{avgMatch}%</div>
+        <div className="stat-card">
+          <div className="stat-label">Avg Match</div>
+          <div className="stat-value violet">{avgMatch}%</div>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Offers
-          </div>
-          <div className="font-syne text-3xl font-extrabold text-[#ffd166]">{totalOffers}</div>
+        <div className="stat-card">
+          <div className="stat-label">Offers</div>
+          <div className="stat-value warn">{totalOffers}</div>
         </div>
+      </div>
+
+      {/* Kanban */}
+      <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+        <span className="pulse-dot" />
+        <span className="kicker">Live Board</span>
       </div>
 
       <DndContext
@@ -312,7 +278,7 @@ export default function Dashboard() {
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+        <div className="kanban">
           {STATUSES.map((status) => {
             const colJobs = jobs.filter((j) => j.status === status.id);
             return (

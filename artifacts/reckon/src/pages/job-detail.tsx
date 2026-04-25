@@ -1,38 +1,51 @@
 import { useState } from "react";
 import { useParams, Link } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { useGetJob, useUpdateJob, useRegenerateEmail, useGetProfile, useAnalyzeJob, getGetJobQueryKey, UpdateJobBodyStatus } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  useGetJob, useUpdateJob, useRegenerateEmail, useGetProfile,
+  useAnalyzeJob, getGetJobQueryKey, UpdateJobBodyStatus,
+} from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
-import { Spinner } from "@/components/ui/spinner";
-import { ArrowLeft, Copy, Sparkles } from "lucide-react";
+import { ArrowLeft, Copy, Sparkles, AlertTriangle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+
+function scoreClass(score: number) {
+  if (score >= 80) return "good";
+  if (score >= 50) return "warn";
+  return "bad";
+}
+function scoreColor(score: number) {
+  if (score >= 80) return "var(--good)";
+  if (score >= 50) return "var(--warn)";
+  return "var(--bad)";
+}
 
 export default function JobDetail() {
   const { id } = useParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  const { data: jobResponse, isLoading } = useGetJob(id!, { query: { enabled: !!id, queryKey: getGetJobQueryKey(id!) } });
+
+  const { data: jobResponse, isLoading } = useGetJob(id!, {
+    query: { enabled: !!id, queryKey: getGetJobQueryKey(id!) },
+  });
   const { data: profileResponse } = useGetProfile();
-  
+
   const updateJob = useUpdateJob();
   const regenerateEmail = useRegenerateEmail();
   const analyzeJob = useAnalyzeJob();
-  
+
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const job = jobResponse?.job;
   const profile = profileResponse?.profile;
-  const isFree = profile?.subscription_type === 'free';
+  const isFree = profile?.subscription_type === "free";
 
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="flex h-[60vh] items-center justify-center">
-          <Spinner className="h-8 w-8 text-primary" />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
+          <div className="spinner" style={{ width: 32, height: 32, borderWidth: 3 }} />
         </div>
       </AppLayout>
     );
@@ -41,17 +54,17 @@ export default function JobDetail() {
   if (!job) {
     return (
       <AppLayout>
-        <div className="text-center py-20">Job not found</div>
+        <div style={{ textAlign: "center", padding: "80px 0", color: "var(--text-3)" }}>
+          Job not found
+        </div>
       </AppLayout>
     );
   }
 
-  const handleStatusChange = async (status: UpdateJobBodyStatus) => {
+  const handleStatusChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const status = e.target.value as UpdateJobBodyStatus;
     try {
-      await updateJob.mutateAsync({
-        id: job.id,
-        data: { status }
-      });
+      await updateJob.mutateAsync({ id: job.id, data: { status } });
       await queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
       await queryClient.invalidateQueries({ queryKey: getGetJobQueryKey(job.id) });
       toast({ title: "Status updated" });
@@ -96,129 +109,152 @@ export default function JobDetail() {
     }
   };
 
-  const scoreColor = (job.match_score || 0) >= 80 ? "#00d4aa" : (job.match_score || 0) >= 50 ? "#ffd166" : "#ff6b6b";
-
   const displayedSkills = isFree && job.missing_skills ? job.missing_skills.slice(0, 2) : job.missing_skills;
+  const sc = job.match_score ?? null;
 
   return (
     <AppLayout>
-      <div className="mb-6">
-        <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
-          <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-        </Link>
+      <button className="back-btn" onClick={() => history.back()}>
+        <ArrowLeft size={14} />
+        Back to Dashboard
+      </button>
+
+      {/* Header */}
+      <div className="main-header">
+        <div>
+          <div className="crumbs">{job.company_name}</div>
+          <h1>{job.job_title}</h1>
+          {job.job_url && (
+            <a
+              href={job.job_url}
+              target="_blank"
+              rel="noreferrer"
+              style={{ fontSize: 13, color: "var(--violet-bright)", marginTop: 4, display: "inline-block" }}
+            >
+              View original posting ↗
+            </a>
+          )}
+        </div>
+        <select
+          className="status-select"
+          value={job.status}
+          onChange={handleStatusChange}
+        >
+          <option value="saved">Saved</option>
+          <option value="applied">Applied</option>
+          <option value="interview">Interview</option>
+          <option value="rejected">Rejected</option>
+          <option value="offer">Offer</option>
+        </select>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_400px]">
-        {/* Main Content */}
+      <div className="detail-layout">
+        {/* Left column */}
         <div>
-          <div className="mb-8 flex items-start justify-between">
-            <div>
-              <div className="mb-1 text-sm text-muted-foreground">{job.company_name}</div>
-              <h1 className="font-syne text-3xl font-extrabold">{job.job_title}</h1>
-              {job.job_url && (
-                <a href={job.job_url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm text-primary hover:underline">
-                  View original posting
-                </a>
-              )}
-            </div>
-            
-            <Select value={job.status} onValueChange={handleStatusChange}>
-              <SelectTrigger className="w-[140px] bg-secondary/50 border-border">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="saved">Saved</SelectItem>
-                <SelectItem value="applied">Applied</SelectItem>
-                <SelectItem value="interview">Interview</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-                <SelectItem value="offer">Offer</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
+          {/* Job Description */}
           {job.job_description && (
-            <div className="mb-8">
-              <h2 className="mb-4 font-syne text-sm font-bold uppercase tracking-wide text-foreground">Job Description</h2>
-              <div className="rounded-xl border border-border bg-secondary/20 p-5 text-[13px] leading-relaxed text-muted-foreground max-h-[300px] overflow-y-auto whitespace-pre-wrap">
+            <div className="detail-section">
+              <div className="card-h">
+                <span className="kicker">Job Description</span>
+              </div>
+              <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.7, maxHeight: 280, overflowY: "auto", whiteSpace: "pre-wrap" }}>
                 {job.job_description}
               </div>
             </div>
           )}
 
-          <div className="mb-8">
-            <h2 className="mb-4 font-syne text-sm font-bold uppercase tracking-wide text-foreground">Missing Skills</h2>
+          {/* Missing Skills */}
+          <div className="detail-section">
+            <div className="card-h">
+              <span className="kicker">Missing Skills</span>
+              {displayedSkills && displayedSkills.length > 0 && (
+                <span className="pill pill-bad">
+                  <span className="dot" />
+                  {displayedSkills.length} missing
+                </span>
+              )}
+            </div>
+
             {displayedSkills && displayedSkills.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {displayedSkills.map((skill, i) => (
-                  <div key={i} className="rounded-full border border-[#ff6b6b]/20 bg-[#ff6b6b]/10 px-3 py-1.5 text-xs font-medium text-[#ff6b6b]">
-                    {skill.skill}
-                  </div>
+                  <span key={i} className="pill pill-bad">{skill.skill}</span>
                 ))}
                 {isFree && job.missing_skills && job.missing_skills.length > 2 && (
-                  <div className="flex items-center gap-1 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                    + {job.missing_skills.length - 2} more hidden
-                  </div>
+                  <Link href="/settings">
+                    <span className="pill" style={{ cursor: "pointer" }}>
+                      +{job.missing_skills.length - 2} more (upgrade)
+                    </span>
+                  </Link>
                 )}
               </div>
             ) : job.match_score != null ? (
-              <div className="text-sm text-muted-foreground">No critical skills missing.</div>
+              <p style={{ fontSize: 13, color: "var(--good)" }}>No critical skills missing.</p>
             ) : (
-              <div className="text-sm text-muted-foreground">Not analyzed yet</div>
+              <p style={{ fontSize: 13, color: "var(--text-3)" }}>Not analyzed yet</p>
             )}
           </div>
 
-          <div className="mb-8">
-            <h2 className="mb-4 font-syne text-sm font-bold uppercase tracking-wide text-foreground">Resume Suggestions</h2>
+          {/* Resume Suggestions */}
+          <div className="detail-section">
+            <div className="card-h">
+              <span className="kicker">Resume Suggestions</span>
+            </div>
             {job.resume_suggestions && job.resume_suggestions.length > 0 ? (
-              <ul className="flex flex-col gap-3">
+              <ul style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                 {job.resume_suggestions.map((sug, i) => (
-                  <li key={i} className="flex items-start gap-3 text-[13px] leading-relaxed text-muted-foreground">
-                    <span className="mt-0.5 text-primary">&#8594;</span>
+                  <li key={i} className="suggestion-item">
+                    <span className="suggestion-arrow">→</span>
                     {sug}
                   </li>
                 ))}
               </ul>
             ) : job.match_score != null ? (
-              <div className="text-sm text-muted-foreground">Resume looks solid for this role.</div>
+              <p style={{ fontSize: 13, color: "var(--text-3)" }}>Resume looks solid for this role.</p>
             ) : (
-              <div className="text-sm text-muted-foreground">Not analyzed yet</div>
+              <p style={{ fontSize: 13, color: "var(--text-3)" }}>Not analyzed yet</p>
             )}
           </div>
 
-          <div>
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-syne text-sm font-bold uppercase tracking-wide text-foreground">Generated Email</h2>
+          {/* Generated Email */}
+          <div className="detail-section">
+            <div className="card-h">
+              <span className="kicker">Generated Email</span>
               {job.generated_email && !isFree && (
-                <Button variant="outline" size="sm" onClick={handleRegenerate} disabled={isRegenerating || (job.email_generates_count || 0) >= 3} className="h-8 text-xs border-border bg-transparent text-muted-foreground hover:text-primary">
-                  {isRegenerating ? <Spinner className="mr-2 h-3 w-3" /> : <Sparkles className="mr-2 h-3 w-3" />}
-                  Regenerate ({(job.email_generates_count || 0)}/3)
-                </Button>
+                <button
+                  className="btn btn-soft btn-sm"
+                  onClick={handleRegenerate}
+                  disabled={isRegenerating || (job.email_generates_count || 0) >= 3}
+                >
+                  {isRegenerating ? <span className="spinner" /> : <Sparkles size={12} />}
+                  Regenerate ({job.email_generates_count || 0}/3)
+                </button>
               )}
             </div>
 
             {job.match_score == null ? (
-              <div className="rounded-xl border border-border bg-secondary/30 p-6 text-center">
-                <p className="mb-4 text-sm text-muted-foreground">Analyze this job to generate a personalized email.</p>
-                <Button onClick={handleAnalyze} disabled={isAnalyzing} className="bg-primary hover:bg-primary/90">
-                  {isAnalyzing ? "Analyzing..." : "Analyze Job"}
-                </Button>
+              <div style={{ textAlign: "center", padding: "24px 0" }}>
+                <p style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 16 }}>
+                  Analyze this job to generate a personalized email.
+                </p>
+                <button
+                  className={`btn btn-primary${isAnalyzing ? " btn-loading" : ""}`}
+                  onClick={handleAnalyze}
+                  disabled={isAnalyzing}
+                >
+                  {isAnalyzing ? <span className="spinner" /> : <Sparkles size={14} />}
+                  {isAnalyzing ? "Analyzing…" : "Analyze Job"}
+                </button>
               </div>
             ) : (
-              <div className="relative">
-                <div className={`overflow-hidden rounded-xl border border-border bg-secondary/30 p-5 text-[13px] leading-relaxed text-muted-foreground ${isFree ? 'max-h-[200px]' : ''}`}>
-                  {job.generated_email ? (
-                    <div className="whitespace-pre-wrap">{job.generated_email}</div>
-                  ) : (
-                    <div>No email generated.</div>
-                  )}
+              <div style={{ position: "relative" }}>
+                <div className={`email-box${isFree ? "" : ""}`} style={isFree ? { maxHeight: 200, overflow: "hidden" } : {}}>
+                  {job.generated_email || "No email generated."}
                 </div>
-                
                 {isFree && (
-                  <div className="absolute bottom-0 left-0 right-0 flex h-[100px] items-end justify-center bg-gradient-to-t from-card to-transparent pb-4">
-                    <Link href="/settings">
-                      <Button className="rounded-full bg-primary px-6 shadow-lg hover:bg-primary/90">
-                        Upgrade to Unlock
-                      </Button>
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 100, background: "linear-gradient(to top, var(--surface), transparent)", display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: 12 }}>
+                    <Link href="/settings" className="btn btn-primary btn-sm">
+                      Upgrade to Unlock
                     </Link>
                   </div>
                 )}
@@ -226,52 +262,91 @@ export default function JobDetail() {
             )}
 
             {job.generated_email && !isFree && (
-              <Button variant="outline" onClick={handleCopy} className="mt-3 w-full border-primary bg-transparent text-primary hover:bg-primary/10">
-                <Copy className="mr-2 h-4 w-4" /> Copy Email
-              </Button>
+              <button
+                className="btn btn-ghost btn-block"
+                onClick={handleCopy}
+                style={{ marginTop: 12 }}
+              >
+                <Copy size={14} />
+                Copy Email
+              </button>
             )}
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div>
-          <div className="rounded-2xl border border-border bg-card p-8 text-center sticky top-24">
-            <div className="mx-auto mb-4 flex h-[140px] w-[140px] items-center justify-center rounded-full relative" 
-              style={{
-                background: job.match_score != null 
-                  ? `conic-gradient(${scoreColor} 0deg ${(job.match_score / 100) * 360}deg, var(--color-secondary) ${(job.match_score / 100) * 360}deg)` 
-                  : 'var(--color-secondary)'
-              }}>
-              <div className="absolute h-[110px] w-[110px] rounded-full bg-card" />
-              <div className="relative z-10 font-syne text-4xl font-extrabold" style={{ color: scoreColor }}>
-                {job.match_score != null ? `${job.match_score}%` : '--'}
+        {/* Right column */}
+        <div className="detail-right-sticky">
+          <div className="score-panel">
+            {/* Score ring */}
+            <div style={{ width: 140, height: 140, margin: "0 auto 16px", position: "relative" }}>
+              <svg width="140" height="140" style={{ transform: "rotate(-90deg)" }}>
+                <circle cx="70" cy="70" r="60" fill="none" stroke="var(--surface-2)" strokeWidth="10" />
+                {sc != null && (
+                  <circle
+                    cx="70" cy="70" r="60"
+                    fill="none"
+                    stroke={scoreColor(sc)}
+                    strokeWidth="10"
+                    strokeDasharray={`${(sc / 100) * 377} 377`}
+                    strokeLinecap="round"
+                  />
+                )}
+              </svg>
+              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
+                <div style={{ fontFamily: "var(--serif)", fontSize: 36, color: sc != null ? scoreColor(sc) : "var(--text-3)", lineHeight: 1 }}>
+                  {sc != null ? `${sc}%` : "--"}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--text-4)", fontFamily: "var(--mono)", marginTop: 4 }}>match</div>
               </div>
             </div>
-            <div className="text-sm font-medium text-muted-foreground">Match Score</div>
-            
-            {job.match_score == null && (
-              <Button onClick={handleAnalyze} disabled={isAnalyzing} className="mt-6 w-full bg-primary hover:bg-primary/90">
-                {isAnalyzing ? "Analyzing..." : "Analyze Job"}
-              </Button>
+
+            <div className="kicker" style={{ marginBottom: 20 }}>Match Score</div>
+
+            {sc == null && (
+              <button
+                className={`btn btn-primary btn-block${isAnalyzing ? " btn-loading" : ""}`}
+                onClick={handleAnalyze}
+                disabled={isAnalyzing}
+                style={{ marginBottom: 12 }}
+              >
+                {isAnalyzing ? <span className="spinner" /> : <Sparkles size={14} />}
+                {isAnalyzing ? "Analyzing…" : "Analyze Job"}
+              </button>
             )}
 
-            {job.match_score != null && (
-              <div className="mt-6 space-y-3 text-left">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">ATS Risk Score</span>
-                  <span className="font-semibold text-foreground">{job.match_score >= 70 ? "Low" : job.match_score >= 40 ? "Medium" : "High"}</span>
+            {sc != null && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, textAlign: "left", marginTop: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                  <span style={{ color: "var(--text-3)" }}>ATS Risk</span>
+                  <span style={{ fontWeight: 600 }}>
+                    <span className={`pill pill-${sc >= 70 ? "good" : sc >= 40 ? "warn" : "bad"}`} style={{ height: 20, fontSize: 10 }}>
+                      {sc >= 70 ? "Low" : sc >= 40 ? "Medium" : "High"}
+                    </span>
+                  </span>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Missing Skills</span>
-                  <span className="font-semibold text-[#ff6b6b]">{job.missing_skills?.length ?? 0}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                  <span style={{ color: "var(--text-3)" }}>Missing Skills</span>
+                  <span style={{ color: "var(--bad)", fontWeight: 600 }}>{job.missing_skills?.length ?? 0}</span>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Suggestions</span>
-                  <span className="font-semibold text-foreground">{job.resume_suggestions?.length ?? 0}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                  <span style={{ color: "var(--text-3)" }}>Suggestions</span>
+                  <span style={{ fontWeight: 600 }}>{job.resume_suggestions?.length ?? 0}</span>
                 </div>
               </div>
             )}
           </div>
+
+          {isFree && (
+            <div style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.08), rgba(124,58,237,0.04))", border: "1px solid var(--line-strong)", borderRadius: 14, padding: 20 }}>
+              <div style={{ fontFamily: "var(--serif)", fontSize: 18, marginBottom: 8 }}>Upgrade to Pro</div>
+              <p style={{ fontSize: 13, color: "var(--text-2)", marginBottom: 16, lineHeight: 1.5 }}>
+                Unlock unlimited analyses, full skill gap list, and AI email generation.
+              </p>
+              <Link href="/settings" className="btn btn-primary btn-block btn-sm">
+                View Plans
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </AppLayout>

@@ -1,18 +1,17 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { useGetProfile, useUpdateProfile, useUploadResume, useGetBillingStatus, useCancelSubscription } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  useGetProfile, useUpdateProfile, useUploadResume,
+  useGetBillingStatus, useCancelSubscription,
+} from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Spinner } from "@/components/ui/spinner";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { Sparkles } from "lucide-react";
 
 const profileSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
@@ -22,20 +21,20 @@ export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const { data: profileResponse, isLoading: profileLoading } = useGetProfile();
   const { data: billingResponse, isLoading: billingLoading } = useGetBillingStatus();
-  
+
   const updateProfile = useUpdateProfile();
   const uploadResume = useUploadResume();
   const cancelSub = useCancelSubscription();
-  
+
   const profile = profileResponse?.profile;
   const billing = billingResponse;
 
   const form = useForm({
     resolver: zodResolver(profileSchema),
-    values: { fullName: profile?.full_name || "" }
+    values: { fullName: profile?.full_name || "" },
   });
 
   const [resumeText, setResumeText] = useState("");
@@ -59,14 +58,10 @@ export default function Settings() {
 
   const handleResumeUpload = async () => {
     if (!file && !resumeText) return;
-    
     setIsUploading(true);
     try {
       await uploadResume.mutateAsync({
-        data: {
-          resume: file || undefined,
-          resume_text: resumeText || undefined
-        }
+        data: { resume: file || undefined, resume_text: resumeText || undefined },
       });
       toast({ title: "Resume updated" });
       setFile(null);
@@ -96,194 +91,233 @@ export default function Settings() {
   if (profileLoading || billingLoading) {
     return (
       <AppLayout>
-        <div className="flex h-[60vh] items-center justify-center">
-          <Spinner className="h-8 w-8 text-primary" />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
+          <div className="spinner" style={{ width: 32, height: 32, borderWidth: 3 }} />
         </div>
       </AppLayout>
     );
   }
 
-  const isFree = profile?.subscription_type === 'free';
+  const isFree = profile?.subscription_type === "free";
   const limits = billing?.limits;
+
+  const nameStr = profile?.full_name ?? "";
+  const initials = nameStr
+    ? nameStr.split(" ").map((s: string) => s[0]).slice(0, 2).join("")
+    : "U";
+
+  const jobsUsed = billing?.jobs_count ?? 0;
+  const jobsCap = limits?.free_jobs;
+  const jobsPct = jobsCap ? Math.min(100, (jobsUsed / jobsCap) * 100) : 10;
+
+  const aiUsed = billing?.today_ai_calls ?? 0;
+  const aiCap = limits?.daily_ai_analyses;
+  const aiPct = aiCap ? Math.min(100, (aiUsed / aiCap) * 100) : 10;
 
   return (
     <AppLayout>
-      <h1 className="mb-8 font-syne text-3xl font-extrabold tracking-tight">Settings</h1>
+      <div className="main-header">
+        <div>
+          <div className="crumbs">Your Account</div>
+          <h1>Settings.</h1>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Profile Card */}
-        <div className="rounded-2xl border border-border bg-card p-7">
-          <h2 className="mb-6 font-syne text-lg font-bold">Profile</h2>
-          
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#ff6b9d] font-syne text-lg font-bold text-white">
-            {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : 'U'}
+      <div className="settings-grid">
+        {/* Profile */}
+        <div className="set-card">
+          <div className="card-h">
+            <span className="kicker">Profile</span>
+          </div>
+          <div className="profile-row">
+            <div className="avatar-lg">{initials}</div>
+            <div>
+              <div style={{ fontFamily: "var(--serif)", fontSize: 20, color: "var(--text)" }}>
+                {nameStr || "Account"}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-3)", fontFamily: "var(--mono)", marginTop: 2 }}>
+                {user?.email}
+              </div>
+            </div>
           </div>
 
-          <form onSubmit={form.handleSubmit(handleProfileUpdate)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                {...form.register("fullName")}
-                className="bg-secondary/50"
-              />
+          <form onSubmit={form.handleSubmit(handleProfileUpdate)} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className="field">
+              <label className="field-label">Full name</label>
+              <input {...form.register("fullName")} className="input" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
+            <div className="field">
+              <label className="field-label">Email address</label>
+              <input
                 type="email"
                 value={user?.email ?? ""}
                 readOnly
-                className="bg-secondary/30 text-muted-foreground cursor-default"
+                className="input"
+                style={{ opacity: 0.6, cursor: "default" }}
               />
             </div>
-            <Button type="submit" disabled={isUpdating} className="bg-primary hover:bg-primary/90">
-              {isUpdating ? "Saving..." : "Save Profile"}
-            </Button>
+            <button
+              type="submit"
+              disabled={isUpdating}
+              className={`btn btn-primary${isUpdating ? " btn-loading" : ""}`}
+              style={{ alignSelf: "flex-start" }}
+            >
+              {isUpdating ? <span className="spinner" /> : null}
+              {isUpdating ? "Saving…" : "Save changes"}
+            </button>
           </form>
         </div>
 
-        {/* Resume Card */}
-        <div className="rounded-2xl border border-border bg-card p-7">
-          <h2 className="mb-6 font-syne text-lg font-bold">Resume</h2>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Upload PDF</Label>
-              <Input 
-                type="file" 
+        {/* Resume */}
+        <div className="set-card">
+          <div className="card-h">
+            <span className="kicker">Resume</span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div className="field">
+              <label className="field-label">Upload PDF / DOCX</label>
+              <input
+                type="file"
                 accept=".pdf,.doc,.docx"
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="bg-secondary/50"
+                className="input"
+                style={{ padding: "10px 14px" }}
               />
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-border" />
-              <span className="text-xs text-muted-foreground">OR</span>
-              <div className="flex-1 h-px bg-border" />
+
+            <div className="auth-divider">
+              <span>or</span>
             </div>
-            <div className="space-y-2">
-              <Label>Paste Text</Label>
-              <Textarea 
+
+            <div className="field">
+              <label className="field-label">Paste resume text</label>
+              <textarea
                 value={resumeText}
                 onChange={(e) => setResumeText(e.target.value)}
                 placeholder="Paste your resume text here..."
-                className="min-h-[120px] bg-secondary/50"
+                className="textarea"
               />
             </div>
-            <Button 
-              onClick={handleResumeUpload} 
+
+            <button
+              onClick={handleResumeUpload}
               disabled={isUploading || (!file && !resumeText)}
-              variant="secondary"
-              className="w-full"
+              className={`btn btn-soft btn-block${isUploading ? " btn-loading" : ""}`}
             >
-              {isUploading ? "Uploading..." : "Update Resume"}
-            </Button>
-            
+              {isUploading ? <span className="spinner" /> : null}
+              {isUploading ? "Uploading…" : "Update Resume"}
+            </button>
+
             {profile?.resume_text && (
-              <div className="mt-2">
-                <Label className="mb-1.5 block text-xs text-muted-foreground">Current resume (preview):</Label>
-                <div className="rounded-lg bg-secondary/30 p-3 text-xs text-muted-foreground line-clamp-3">
+              <div>
+                <div className="field-label" style={{ marginBottom: 6 }}>Current resume (preview)</div>
+                <div style={{ background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: "var(--text-3)", lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                   {profile.resume_text}
                 </div>
               </div>
             )}
             {profile?.resume_url && !profile.resume_text && (
-              <div className="text-xs text-muted-foreground">
-                Resume PDF on file. <a href={profile.resume_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">View</a>
+              <div style={{ fontSize: 12, color: "var(--text-3)" }}>
+                Resume PDF on file.{" "}
+                <a href={profile.resume_url} target="_blank" rel="noreferrer" style={{ color: "var(--violet-bright)" }}>View</a>
               </div>
             )}
           </div>
         </div>
 
-        {/* Plan & Usage Card */}
-        <div className="rounded-2xl border border-border bg-card p-7">
-          <h2 className="mb-6 font-syne text-lg font-bold">Plan &amp; Usage</h2>
-          
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-[13px] font-semibold text-primary capitalize">
-            {profile?.subscription_type ?? "free"} Plan
+        {/* Plan & Usage */}
+        <div className="set-card">
+          <div className="card-h">
+            <span className="kicker">Plan &amp; Usage</span>
+            <span className={`pill pill-${isFree ? "neutral" : "violet"}`} style={{ height: 24 }}>
+              <span className="dot" />
+              {profile?.subscription_type ?? "free"}
+            </span>
           </div>
 
-          <div className="space-y-5">
-            <div>
-              <div className="mb-1.5 flex justify-between text-xs text-muted-foreground">
-                <span>Jobs Analyzed</span>
-                <span>{billing?.jobs_count ?? 0}{limits?.free_jobs ? ` / ${limits.free_jobs}` : ''}</span>
+          <div className="usage-row" style={{ marginBottom: 20 }}>
+            <div className="usage-item">
+              <div className="usage-item-head">
+                <span className="usage-item-label">Jobs Analyzed</span>
+                <span className="usage-item-val">{jobsUsed}{jobsCap ? ` / ${jobsCap}` : ""}</span>
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-                <div 
-                  className="h-full rounded-full bg-primary transition-all"
-                  style={{ width: limits?.free_jobs ? `${Math.min(100, ((billing?.jobs_count ?? 0) / limits.free_jobs) * 100)}%` : '10%' }}
-                />
+              <div className="usage-bar">
+                <div className="usage-bar-fill" style={{ width: `${jobsPct}%` }} />
               </div>
             </div>
-
-            <div>
-              <div className="mb-1.5 flex justify-between text-xs text-muted-foreground">
-                <span>Daily AI Analyses Used</span>
-                <span>{billing?.today_ai_calls ?? 0}{limits?.daily_ai_analyses ? ` / ${limits.daily_ai_analyses}` : ''}</span>
+            <div className="usage-item">
+              <div className="usage-item-head">
+                <span className="usage-item-label">Daily AI Analyses</span>
+                <span className="usage-item-val">{aiUsed}{aiCap ? ` / ${aiCap}` : ""}</span>
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-                <div 
-                  className="h-full rounded-full bg-[#00d4aa] transition-all"
-                  style={{ width: limits?.daily_ai_analyses ? `${Math.min(100, ((billing?.today_ai_calls ?? 0) / limits.daily_ai_analyses) * 100)}%` : '10%' }}
-                />
+              <div className="usage-bar">
+                <div className={`usage-bar-fill${aiPct >= 80 ? " warn" : " good"}`} style={{ width: `${aiPct}%` }} />
               </div>
             </div>
-
-            {isFree ? (
-              <div className="mt-6 rounded-xl border border-[#ff6b9d]/30 bg-[#ff6b9d]/5 p-5">
-                <h3 className="mb-1.5 font-syne font-bold text-foreground">Upgrade to Pro</h3>
-                <p className="mb-4 text-sm text-muted-foreground">Unlock unlimited job analysis, full missing skills list, and AI email generation.</p>
-                <div className="flex flex-col gap-2">
-                  <Button className="w-full bg-[#ff6b9d] text-white hover:bg-[#ff6b9d]/90">
-                    Monthly — $19/mo
-                  </Button>
-                  <Button variant="outline" className="w-full border-border text-muted-foreground hover:text-foreground">
-                    Pay As You Go — $1 / 12 jobs
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-6 border-t border-border pt-5 space-y-3">
-                <div className="text-xs text-muted-foreground">
-                  <span className="font-semibold text-foreground capitalize">{profile?.subscription_type}</span> plan is active.
-                </div>
-                <Button onClick={handleCancelSub} className="bg-[#ff6b6b]/10 text-[#ff6b6b] border border-[#ff6b6b]/30 hover:bg-[#ff6b6b]/20">
-                  Cancel Subscription
-                </Button>
-              </div>
-            )}
           </div>
-        </div>
 
-        {/* Billing History Card */}
-        <div className="rounded-2xl border border-border bg-card p-7">
-          <h2 className="mb-6 font-syne text-lg font-bold">Billing History</h2>
-          
           {isFree ? (
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              <div className="mb-3 text-muted-foreground/50">
-                <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <div style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.08), rgba(124,58,237,0.04))", border: "1px solid var(--line-strong)", borderRadius: 14, padding: 20 }}>
+              <div style={{ fontFamily: "var(--serif)", fontSize: 20, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+                <Sparkles size={16} style={{ color: "var(--violet-bright)" }} />
+                Upgrade to Pro
               </div>
-              <p>No billing history yet.</p>
-              <p className="mt-1 text-xs opacity-60">Invoices will appear here after your first payment.</p>
+              <p style={{ fontSize: 13, color: "var(--text-2)", marginBottom: 16, lineHeight: 1.5 }}>
+                Unlock unlimited job analysis, full missing skills list, and AI email generation.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <button className="btn btn-primary btn-block">Monthly — $19/mo</button>
+                <button className="btn btn-ghost btn-block">Pay As You Go — $1 / 12 jobs</button>
+              </div>
             </div>
           ) : (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between rounded-lg bg-secondary/30 px-4 py-3 text-sm">
+            <div style={{ borderTop: "1px solid var(--line)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ fontSize: 12, color: "var(--text-3)" }}>
+                <span style={{ fontWeight: 600, color: "var(--text)", textTransform: "capitalize" }}>{profile?.subscription_type}</span> plan is active.
+              </div>
+              <button
+                onClick={handleCancelSub}
+                className="btn btn-danger btn-sm"
+                style={{ alignSelf: "flex-start" }}
+              >
+                Cancel Subscription
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Billing History */}
+        <div className="set-card">
+          <div className="card-h">
+            <span className="kicker">Billing History</span>
+          </div>
+
+          {isFree ? (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-4)" }}>
+              <svg xmlns="http://www.w3.org/2000/svg" style={{ width: 40, height: 40, margin: "0 auto 12px" }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+              <p style={{ fontSize: 13, color: "var(--text-3)" }}>No billing history yet.</p>
+              <p style={{ fontSize: 11, color: "var(--text-4)", marginTop: 4 }}>Invoices will appear here after your first payment.</p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div className="plan-block">
                 <div>
-                  <div className="font-medium capitalize">{profile?.subscription_type} Plan</div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">Current active subscription</div>
+                  <div style={{ fontSize: 13, fontWeight: 500, textTransform: "capitalize" }}>{profile?.subscription_type} Plan</div>
+                  <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>Current active subscription</div>
                 </div>
-                <div className="text-right">
-                  <div className="font-semibold text-foreground">
-                    {profile?.subscription_type === 'monthly' ? '$19.00' : billing?.amount_owed != null ? `$${(billing.amount_owed / 100).toFixed(2)}` : '--'}
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontWeight: 600 }}>
+                    {profile?.subscription_type === "monthly" ? "$19.00" : billing?.amount_owed != null ? `$${(billing.amount_owed / 100).toFixed(2)}` : "--"}
                   </div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">Active</div>
+                  <span className="pill pill-good" style={{ height: 18, fontSize: 10, marginTop: 4 }}>Active</span>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">Full billing history is available in the Lemon Squeezy customer portal.</p>
+              <p style={{ fontSize: 11, color: "var(--text-4)" }}>
+                Full billing history is available in the customer portal.
+              </p>
             </div>
           )}
         </div>

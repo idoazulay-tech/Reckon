@@ -1,106 +1,85 @@
-import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Settings, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Settings, LogOut, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { LogoMark } from "@/components/LogoMark";
 
-function SidebarContent({ onClose }: { onClose?: () => void }) {
+interface SidebarProps {
+  mobileOpen: boolean;
+  onClose: () => void;
+}
+
+export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const [location] = useLocation();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
 
-  return (
-    <div className="flex h-full flex-col gap-1">
-      <div className="mb-5 flex items-center justify-between px-3 py-2">
-        <span className="font-syne text-2xl font-extrabold text-foreground">
-          R<span className="text-primary">.</span>
-        </span>
-        {onClose && (
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground lg:hidden">
-            <X className="h-5 w-5" />
-          </button>
-        )}
-      </div>
-
-      <div className="flex-1 space-y-1">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location === item.href || location.startsWith(item.href + "/");
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all ${
-                isActive
-                  ? "bg-primary/10 font-medium text-primary"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {item.label}
-            </Link>
-          );
-        })}
-      </div>
-
-      <div className="mt-auto border-t border-border pt-4">
-        <button
-          onClick={() => { logout(); onClose?.(); }}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-all hover:bg-secondary hover:text-foreground"
-        >
-          <LogOut className="h-4 w-4" />
-          Logout
-        </button>
-      </div>
-    </div>
-  );
-}
-
-export function Sidebar() {
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const nameStr: string = user?.user_metadata?.full_name ?? "";
+  const initials = nameStr
+    ? nameStr.split(" ").map((s: string) => s[0]).slice(0, 2).join("")
+    : (user?.email?.charAt(0).toUpperCase() ?? "U");
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-card px-4 py-6 shrink-0">
-        <SidebarContent />
-      </aside>
-
-      {/* Mobile top bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between border-b border-border bg-card px-4 py-3">
-        <span className="font-syne text-xl font-extrabold text-foreground">
-          R<span className="text-primary">.</span>
-        </span>
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="text-muted-foreground hover:text-foreground"
-          aria-label="Open menu"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* Mobile drawer overlay */}
-      {mobileOpen && (
-        <div
-          className="lg:hidden fixed inset-0 z-50 bg-black/60"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      {/* Mobile drawer */}
       <div
-        className={`lg:hidden fixed inset-y-0 left-0 z-50 w-72 transform border-r border-border bg-card px-4 py-6 transition-transform duration-200 ${
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <SidebarContent onClose={() => setMobileOpen(false)} />
-      </div>
+        className={`mobile-sidebar-backdrop${mobileOpen ? " open" : ""}`}
+        onClick={onClose}
+      />
+      <aside className={`sidebar-wrap${mobileOpen ? " open" : ""}`}>
+        <div className="sidebar-head" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <LogoMark />
+          <button
+            onClick={onClose}
+            className="menu-btn"
+            style={{ display: "none" }}
+            id="sidebar-close-btn"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <nav className="nav-list" style={{ flex: 1 }}>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location === item.href || location.startsWith(item.href + "/");
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
+                className={`nav-item${isActive ? " active" : ""}`}
+              >
+                <Icon size={16} className="nav-ico" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="nav-divider" />
+
+        <div className="sidebar-foot">
+          <button
+            onClick={() => { logout(); onClose(); }}
+            className="nav-item"
+            style={{ width: "100%", textAlign: "left", marginBottom: 12 }}
+          >
+            <LogOut size={16} className="nav-ico" />
+            Logout
+          </button>
+
+          <div className="user-chip">
+            <div className="avatar">{initials}</div>
+            <div className="who">
+              <div className="uname">{nameStr || "Account"}</div>
+              <div className="uemail">{user?.email ?? ""}</div>
+            </div>
+          </div>
+        </div>
+      </aside>
     </>
   );
 }

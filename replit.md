@@ -56,7 +56,7 @@ This prevents fake/unverified accounts. The frontend is fully set up to handle t
 - **Auth**: Supabase Auth via `@supabase/supabase-js` → `src/lib/supabase.ts` + `src/contexts/AuthContext.tsx`
 - **Routing**: Wouter with protected routes for `/dashboard`, `/jobs/:id`, `/settings`
 - **State**: TanStack Query + generated hooks from `@workspace/api-client-react`
-- **Design**: Dark theme, Syne + DM Sans fonts, accent #7c6fff — matching approved mockup
+- **Design**: "Purple Reckon" design system — deep dark purple (#0a0612 bg), violet accent (#a855f7), Instrument Serif + Geist + JetBrains Mono fonts, aurora animation, film grain overlay. All CSS via index.css custom classes (no ShadCN in app pages — only `ui/toaster` and `ui/tooltip` remain).
 - **Pages**: `/` landing, `/login`, `/signup`, `/auth/confirm` (email confirmation callback), `/dashboard` (Kanban), `/jobs/:id`, `/settings`, `/404`
 - **Env vars needed in frontend**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
 

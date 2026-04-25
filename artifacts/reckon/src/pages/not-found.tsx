@@ -1,19 +1,30 @@
 import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
+import { LogoMark } from "@/components/LogoMark";
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background text-foreground text-center p-8">
-      <div className="font-syne text-9xl font-extrabold text-primary opacity-20">404</div>
-      <h1 className="mt-4 font-syne text-3xl font-bold">Page not found</h1>
-      <p className="mt-2 text-muted-foreground max-w-md">
-        The page you are looking for doesn't exist or has been moved.
-      </p>
-      <Link href="/">
-        <Button className="mt-8 bg-primary hover:bg-primary/90">
-          Return Home
-        </Button>
-      </Link>
-    </div>
+    <>
+      <div className="aurora" aria-hidden="true" />
+      <div className="grain" aria-hidden="true" />
+      <div className="page-center">
+        <div className="status-card">
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "center" }}>
+            <LogoMark />
+          </div>
+          <div className="h-display" style={{ fontSize: 80, opacity: 0.15, lineHeight: 1, marginBottom: 8 }}>
+            404
+          </div>
+          <div className="h-display" style={{ fontSize: 28, marginBottom: 12 }}>
+            Page not found
+          </div>
+          <p style={{ fontSize: 14, color: "var(--text-3)", lineHeight: 1.6, marginBottom: 28 }}>
+            The page you're looking for doesn't exist or has been moved.
+          </p>
+          <Link href="/" className="btn btn-primary">
+            Return Home
+          </Link>
+        </div>
+      </div>
+    </>
   );
 }

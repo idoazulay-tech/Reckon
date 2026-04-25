@@ -1,17 +1,12 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { Spinner } from "@/components/ui/spinner";
-import { Link } from "wouter";
+import { LogoMark } from "@/components/LogoMark";
+import { CheckCircle, XCircle } from "lucide-react";
 
 const VALID_EMAIL_OTP_TYPES: EmailOtpType[] = [
-  "email",
-  "signup",
-  "recovery",
-  "invite",
-  "magiclink",
-  "email_change",
+  "email", "signup", "recovery", "invite", "magiclink", "email_change",
 ];
 
 function isEmailOtpType(value: string | null): value is EmailOtpType {
@@ -67,62 +62,53 @@ export default function AuthConfirm() {
     handleConfirmation();
   }, [setLocation]);
 
-  if (status === "loading") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <div className="w-full max-w-[440px] rounded-3xl border border-border bg-card p-12 shadow-sm text-center">
-          <div className="mb-2 font-syne text-3xl font-extrabold text-foreground text-left">
-            R<span className="text-primary">.</span>
-          </div>
-          <div className="mt-8 mb-4 flex items-center justify-center">
-            <Spinner className="h-8 w-8 text-primary" />
-          </div>
-          <p className="text-sm text-muted-foreground">Confirming your email address...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === "success") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <div className="w-full max-w-[440px] rounded-3xl border border-border bg-card p-12 shadow-sm text-center">
-          <div className="mb-2 font-syne text-3xl font-extrabold text-foreground text-left">
-            R<span className="text-primary">.</span>
-          </div>
-          <div className="mt-8 mb-4 flex items-center justify-center">
-            <div className="rounded-full bg-green-500/10 p-4">
-              <svg className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-          </div>
-          <h2 className="text-xl font-semibold text-foreground mb-2">Email confirmed!</h2>
-          <p className="text-sm text-muted-foreground">Redirecting you to your dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-[440px] rounded-3xl border border-border bg-card p-12 shadow-sm text-center">
-        <div className="mb-2 font-syne text-3xl font-extrabold text-foreground text-left">
-          R<span className="text-primary">.</span>
-        </div>
-        <div className="mt-8 mb-4 flex items-center justify-center">
-          <div className="rounded-full bg-destructive/10 p-4">
-            <svg className="h-8 w-8 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+    <>
+      <div className="aurora" aria-hidden="true" />
+      <div className="grain" aria-hidden="true" />
+
+      <div className="page-center">
+        <div className="status-card">
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "center" }}>
+            <LogoMark />
           </div>
+
+          {status === "loading" && (
+            <>
+              <div className="icon-ring violet">
+                <div className="spinner" style={{ width: 28, height: 28, borderWidth: 3 }} />
+              </div>
+              <div className="h-display" style={{ fontSize: 22, marginBottom: 10 }}>Confirming…</div>
+              <p style={{ fontSize: 13, color: "var(--text-3)" }}>Verifying your email address</p>
+            </>
+          )}
+
+          {status === "success" && (
+            <>
+              <div className="icon-ring good">
+                <CheckCircle size={28} />
+              </div>
+              <div className="h-display" style={{ fontSize: 22, marginBottom: 10 }}>Email confirmed!</div>
+              <p style={{ fontSize: 13, color: "var(--text-3)" }}>Redirecting you to your dashboard…</p>
+            </>
+          )}
+
+          {status === "error" && (
+            <>
+              <div className="icon-ring bad">
+                <XCircle size={28} />
+              </div>
+              <div className="h-display" style={{ fontSize: 22, marginBottom: 10 }}>Confirmation failed</div>
+              <p style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 24, lineHeight: 1.6 }}>
+                {errorMessage}
+              </p>
+              <Link href="/signup" style={{ color: "var(--violet-bright)", fontSize: 13 }}>
+                Back to sign up
+              </Link>
+            </>
+          )}
         </div>
-        <h2 className="text-xl font-semibold text-foreground mb-2">Confirmation failed</h2>
-        <p className="text-sm text-muted-foreground mb-6">{errorMessage}</p>
-        <Link href="/signup" className="text-sm text-primary hover:underline">
-          Back to sign up
-        </Link>
       </div>
-    </div>
+    </>
   );
 }
